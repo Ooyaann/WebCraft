@@ -343,6 +343,20 @@ export const useStore = create(
     {
       name: 'webcraft-storage',
       storage: createJSONStorage(() => sessionStorage),
+      // Persist only lightweight, resume-worthy state. attemptHistory holds a
+      // full deep-copied AST snapshot per attempt and can bloat storage to
+      // hundreds of KB, so it stays in-memory only; selectedContainerId is
+      // transient UI state. attemptCount (a small int) is kept.
+      partialize: (state) => ({
+        ast: state.ast,
+        ctJourneyAnswers: state.ctJourneyAnswers,
+        ctPreScore: state.ctPreScore,
+        activeLevel: state.activeLevel,
+        activeLevelConfig: state.activeLevelConfig,
+        user: state.user,
+        activeRoom: state.activeRoom,
+        attemptCount: state.attemptCount,
+      }),
     }
   )
 );
