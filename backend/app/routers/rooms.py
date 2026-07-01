@@ -271,13 +271,17 @@ async def get_room_grades(
         # 2. Get project status and score
         student_p_subs = project_subs.get(s_id, [])
         p_score = None
-        status_str = "Belum Mengerjakan"
-        
+
         if student_p_subs:
             # Get latest project submission
             latest_p_sub = student_p_subs[-1]
             p_score = latest_p_sub.teacher_score
             status_str = "Selesai" if p_score is not None else "Perlu Dinilai"
+        elif student_l_subs:
+            # Completed the learning mission but hasn't submitted the project yet.
+            status_str = "Dalam Proses"
+        else:
+            status_str = "Belum Mengerjakan"
             
         # 3. Calculate average CT score
         student_ct_scores = ct_scores_map.get(s_id, [])
