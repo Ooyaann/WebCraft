@@ -3,6 +3,10 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 
 const createUniqueId = (type) => `${type}_${Math.random().toString(36).substring(2, 9)}`;
 
+// Max number of AST snapshots kept for undo/redo.
+const HISTORY_LIMIT = 50;
+const deepCloneAst = (ast) => JSON.parse(JSON.stringify(ast));
+
 const getBlockDefaults = (type) => {
   const containers = ['body', 'div', 'ul', 'ol', 'nav', 'header', 'footer', 'section', 'article', 'main', 'aside', 'form', 'table', 'tr', 'thead', 'tbody', 'a', 'span', 'button', 'li'];
   
@@ -124,6 +128,9 @@ export const useStore = create(
     }
   ],
   selectedContainerId: 'body-root',
+  // Undo/redo stacks of AST snapshots (structural edits). Kept in-memory only.
+  astPast: [],
+  astFuture: [],
   attemptHistory: [], // [{ast_snapshot, timestamp, errors, attempt}]
   attemptCount: 0,
   activeLevel: null,
@@ -154,6 +161,8 @@ export const useStore = create(
       { id: 'body-root', type: 'body', children: [] }
     ],
     selectedContainerId: 'body-root',
+    astPast: [],
+    astFuture: [],
     attemptHistory: [],
     attemptCount: 0,
     ctJourneyAnswers: { decomposition: [], abstraction: [], pattern: [], algorithm: [] },
@@ -168,6 +177,8 @@ export const useStore = create(
       { id: 'style-root', type: 'style', content: 'body {\n  background-color: #ffffff;\n}' }
     ],
     selectedContainerId: 'body-root',
+    astPast: [],
+    astFuture: [],
     attemptHistory: [],
     attemptCount: 0,
     ctJourneyAnswers: state.ctJourneyAnswers,
@@ -203,6 +214,8 @@ export const useStore = create(
 
     set(state => ({
       ast: addToChildren(state.ast),
+      astPast: [...state.astPast, deepCloneAst(state.ast)].slice(-HISTORY_LIMIT),
+      astFuture: [],
       selectedContainerId: newBlock.children !== undefined ? newBlock.id : state.selectedContainerId
     }));
   },
@@ -229,6 +242,8 @@ export const useStore = create(
       const updatedAst = removeFromNodes(state.ast);
       return {
         ast: updatedAst,
+        astPast: [...state.astPast, deepCloneAst(state.ast)].slice(-HISTORY_LIMIT),
+        astFuture: [],
         selectedContainerId: state.selectedContainerId === id ? 'body-root' : state.selectedContainerId
       };
     });
@@ -274,11 +289,35 @@ export const useStore = create(
     };
 
     set(state => ({
-      ast: updateInNodes(state.ast)
+      ast: updateInNodes(state.ast),
+      astPast: [...state.astPast, deepCloneAst(state.ast)].slice(-HISTORY_LIMIT),
+      astFuture: [],
     }));
   },
 
   setSelectedContainerId: (id) => set({ selectedContainerId: id }),
+
+  // Undo the last structural AST change.
+  undo: () => set(state => {
+    if (state.astPast.length === 0) return {};
+    const previous = state.astPast[state.astPast.length - 1];
+    return {
+      ast: previous,
+      astPast: state.astPast.slice(0, -1),
+      astFuture: [deepCloneAst(state.ast), ...state.astFuture].slice(0, HISTORY_LIMIT),
+    };
+  }),
+
+  // Redo a previously undone change.
+  redo: () => set(state => {
+    if (state.astFuture.length === 0) return {};
+    const next = state.astFuture[0];
+    return {
+      ast: next,
+      astPast: [...state.astPast, deepCloneAst(state.ast)].slice(-HISTORY_LIMIT),
+      astFuture: state.astFuture.slice(1),
+    };
+  }),
 
   recordAttempt: (errors) => {
     const snapshot = {
@@ -304,7 +343,8 @@ export const useStore = create(
 
   moveOrAddBlock: (source, targetId, relation) => {
     let blockToInsert = null;
-    let currentAst = get().ast;
+    const originalAst = get().ast;
+    let currentAst = originalAst;
 
     if (source.type === 'new') {
       const type = source.blockType;
@@ -332,12 +372,14 @@ export const useStore = create(
     if (!blockToInsert) return;
 
     const updatedAst = insertNode(currentAst, blockToInsert, targetId, relation);
-    set({
+    set(state => ({
       ast: updatedAst,
-      selectedContainerId: blockToInsert.children !== undefined 
-        ? blockToInsert.id 
+      astPast: [...state.astPast, deepCloneAst(originalAst)].slice(-HISTORY_LIMIT),
+      astFuture: [],
+      selectedContainerId: blockToInsert.children !== undefined
+        ? blockToInsert.id
         : get().selectedContainerId
-    });
+    }));
   }
     }),
     {

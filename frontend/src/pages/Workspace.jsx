@@ -37,8 +37,15 @@ export default function Workspace() {
     attemptHistory,
     recordAttempt,
     resetWorkspace,
+    undo,
+    redo,
+    astPast,
+    astFuture,
     user
   } = useStore();
+
+  const canUndo = astPast.length > 0;
+  const canRedo = astFuture.length > 0;
 
   const [activeTab, setActiveTab] = useState('kanvas'); // 'kanvas' | 'preview' | 'code'
   const [validationErrors, setValidationErrors] = useState([]);
@@ -51,6 +58,25 @@ export default function Workspace() {
   const [reflectionAnswer, setReflectionAnswer] = useState('');
   const [isAnalyzingReflection, setIsAnalyzingReflection] = useState(false);
   const [finalReport, setFinalReport] = useState(null);
+
+  // Keyboard shortcuts for undo/redo (ignored while typing in a field).
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const target = e.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [undo, redo]);
 
   // Block teachers from entering workspace
   useEffect(() => {
@@ -272,6 +298,24 @@ export default function Workspace() {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              title="Urungkan (Ctrl+Z)"
+              className="p-1.5 border-2 border-slate-700 rounded-xl transition-all cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              <i className="ti ti-arrow-back-up text-base" />
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              title="Ulangi (Ctrl+Y)"
+              className="p-1.5 border-2 border-slate-700 rounded-xl transition-all cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              <i className="ti ti-arrow-forward-up text-base" />
+            </button>
+          </div>
           <span className="px-3.5 py-1.5 bg-[#FACC15] text-[#0F172A] border-2 border-[#0F172A] font-fredoka text-xs font-bold rounded-xl shadow-[2px_2px_0px_#0F172A] flex items-center gap-1 shrink-0">
             <i className="ti ti-rocket" />
             Fase Action
