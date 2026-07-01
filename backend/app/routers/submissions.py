@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -274,6 +274,8 @@ async def list_all_project_submissions_for_guru(
 # Router GET: List all learning submissions for the current logged in user (Siswa)
 @router.get("/learning/me")
 async def list_my_learning_submissions(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -281,6 +283,9 @@ async def list_my_learning_submissions(
         select(LearningSubmission)
         .options(selectinload(LearningSubmission.task))
         .where(LearningSubmission.siswa_id == current_user.id)
+        .order_by(LearningSubmission.submitted_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     submissions = result.scalars().all()
     

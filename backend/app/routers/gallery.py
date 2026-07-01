@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -15,6 +15,8 @@ router = APIRouter(prefix="/gallery", tags=["gallery"])
 # Router GET: List all published gallery creations and classroom submissions
 @router.get("")
 async def list_gallery_items(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -44,6 +46,8 @@ async def list_gallery_items(
             selectinload(LearningSubmission.siswa),
             selectinload(LearningSubmission.task).selectinload(LearningTask.pertemuan).selectinload(Pertemuan.room)
         )
+        .order_by(LearningSubmission.submitted_at.desc())
+        .limit(offset + limit)
     )
     learning_res = await db.execute(learning_query)
     learning_subs = learning_res.scalars().all()
@@ -59,6 +63,8 @@ async def list_gallery_items(
             selectinload(ProjectSubmission.task).selectinload(ProjectTask.pertemuan).selectinload(Pertemuan.room),
             selectinload(ProjectSubmission.gallery_item)
         )
+        .order_by(ProjectSubmission.submitted_at.desc())
+        .limit(offset + limit)
     )
     project_res = await db.execute(project_query)
     project_subs = project_res.scalars().all()
@@ -125,9 +131,9 @@ async def list_gallery_items(
             "score": sub.teacher_score or 0
         })
 
-    # Sort items by date submitted descending
+    # Sort items by date submitted descending, then return the requested page.
     formatted.sort(key=lambda x: x["published_at"], reverse=True)
-    return formatted
+    return formatted[offset: offset + limit]
 
 # Router POST: Appreciate / Like gallery creation (by submission ID)
 @router.post("/{submission_id}/appreciate")
