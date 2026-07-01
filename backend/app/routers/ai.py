@@ -14,13 +14,14 @@ from app.schemas import (
     SuggestScoreRequest, SuggestScoreResponse, ValidateCodeRequest, ValidateCodeResponse
 )
 from app.services import ai_service
+from app.rate_limit import ai_rate_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["ai-assistant"])
 
 # Router POST: Evaluate CT Journey answers
-@router.post("/ct-journey", response_model=CTJourneyResponse)
+@router.post("/ct-journey", response_model=CTJourneyResponse, dependencies=[Depends(ai_rate_limit)])
 async def analyze_ct_journey_step(
     request: CTJourneyRequest,
     current_user: User = Depends(get_current_user)
@@ -45,7 +46,7 @@ async def analyze_ct_journey_step(
         )
 
 # Router POST: Socratic Tutor Hint in Workspace
-@router.post("/tutor", response_model=TutorResponse)
+@router.post("/tutor", response_model=TutorResponse, dependencies=[Depends(ai_rate_limit)])
 async def get_socratic_tutor_hint(
     request: TutorRequest,
     current_user: User = Depends(get_current_user_optional)
@@ -68,7 +69,7 @@ async def get_socratic_tutor_hint(
         )
 
 # Router POST: Get classroom-wide error heatmap & AI advice (Guru only)
-@router.post("/class-insights")
+@router.post("/class-insights", dependencies=[Depends(ai_rate_limit)])
 async def get_class_insights(
     request: ClassInsightsRequest,
     current_user: User = Depends(get_current_user),
@@ -158,7 +159,7 @@ async def get_class_insights(
         "recommendations": recommendations
     }
 
-@router.post("/analyze-ct", response_model=CTSessionResponse)
+@router.post("/analyze-ct", response_model=CTSessionResponse, dependencies=[Depends(ai_rate_limit)])
 async def analyze_ct_session(
     request: CTSessionRequest,
     current_user: User = Depends(get_current_user)
@@ -177,7 +178,7 @@ async def analyze_ct_session(
             detail="Terjadi kesalahan saat menganalisis sesi CT. Silakan coba lagi."
         )
 
-@router.post("/suggest-score", response_model=SuggestScoreResponse)
+@router.post("/suggest-score", response_model=SuggestScoreResponse, dependencies=[Depends(ai_rate_limit)])
 async def suggest_project_score(
     request: SuggestScoreRequest,
     current_user: User = Depends(get_current_user)
@@ -196,7 +197,7 @@ async def suggest_project_score(
             detail="Terjadi kesalahan saat menghitung saran penilaian proyek. Silakan coba lagi."
         )
 
-@router.post("/validate-code", response_model=ValidateCodeResponse)
+@router.post("/validate-code", response_model=ValidateCodeResponse, dependencies=[Depends(ai_rate_limit)])
 async def validate_code(
     request: ValidateCodeRequest,
     current_user: User = Depends(get_current_user)
