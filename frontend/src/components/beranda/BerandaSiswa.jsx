@@ -99,7 +99,7 @@ export default function BerandaSiswa({ user }) {
         </section>
       )}
 
-      {/* Quick Navigation Cards — solid vibrant colors, no whites or light pastels */}
+      {/* Quick Navigation Cards — soft vibrant gradients with neo-brutalist frame */}
       <section className="neo-stagger-3 grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
@@ -107,7 +107,7 @@ export default function BerandaSiswa({ user }) {
             label: 'Ruang Belajar',
             desc: 'Buka kelas',
             color: '#3B82F6',
-            bgClass: 'bg-[#3B82F6] text-white',
+            bgClass: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white',
             descColor: 'text-blue-100',
             to: '/ruang-belajar',
           },
@@ -116,7 +116,7 @@ export default function BerandaSiswa({ user }) {
             label: 'Galeri Karya',
             desc: 'Lihat karya',
             color: '#EC4899',
-            bgClass: 'bg-[#EC4899] text-white',
+            bgClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white',
             descColor: 'text-pink-100',
             to: '/galeri',
           },
@@ -125,7 +125,7 @@ export default function BerandaSiswa({ user }) {
             label: 'Tugasku',
             desc: 'Cek tugas',
             color: '#10B981',
-            bgClass: 'bg-[#10B981] text-white',
+            bgClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white',
             descColor: 'text-emerald-100',
             to: '/tugasku',
           },
@@ -133,8 +133,8 @@ export default function BerandaSiswa({ user }) {
             icon: 'ti-circle-check',
             label: 'Misi Dikirim',
             desc: `${submissions.length + projectSubmissions.length} misi`,
-            color: '#FACC15',
-            bgClass: 'bg-[#FACC15] text-[#0F172A]',
+            color: '#F59E0B',
+            bgClass: 'bg-gradient-to-br from-amber-300 to-yellow-500 text-[#0F172A]',
             descColor: 'text-slate-700',
             to: null,
           },
