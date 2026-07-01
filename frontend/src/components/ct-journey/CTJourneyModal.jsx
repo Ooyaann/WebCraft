@@ -7,6 +7,7 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
   const { ctJourneyAnswers, setCtJourneyAnswers, setCtPreScore, activeLevelConfig, ctPreScore } = useStore();
   const [currentStep, setCurrentStep] = useState(1); // 1: Decomposition, 2: Abstraction, 3: Pattern, 4: Algorithm, 5: Summary
   const [sessionId, setSessionId] = useState(null);
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
 
   // Local state for forms
   const [decompInput, setDecompInput] = useState('');
@@ -34,23 +35,23 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
 
   const getChipColorClass = (idx) => {
     const schemes = [
-      'bg-[#3B82F6] text-white border-2 border-[#0F172A] hover:bg-[#2563EB]',
-      'bg-[#EC4899] text-white border-2 border-[#0F172A] hover:bg-[#DB2777]',
-      'bg-[#FACC15] text-[#0F172A] border-2 border-[#0F172A] hover:bg-[#EAB308]',
-      'bg-[#10B981] text-white border-2 border-[#0F172A] hover:bg-[#059669]',
-      'bg-[#8B5CF6] text-white border-2 border-[#0F172A] hover:bg-[#7C3AED]',
-      'bg-[#F97316] text-white border-2 border-[#0F172A] hover:bg-[#EA580C]',
+      'bg-gradient-to-r from-blue-50 to-blue-100/50 text-blue-700 border-2 border-blue-400 hover:from-blue-100 hover:to-blue-200/50',
+      'bg-gradient-to-r from-pink-50 to-pink-100/50 text-pink-700 border-2 border-pink-400 hover:from-pink-100 hover:to-pink-200/50',
+      'bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-700 border-2 border-amber-400 hover:from-amber-100 hover:to-amber-200/50',
+      'bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 border-2 border-emerald-400 hover:from-emerald-100 hover:to-emerald-200/50',
+      'bg-gradient-to-r from-purple-50 to-purple-100/50 text-purple-700 border-2 border-purple-400 hover:from-purple-100 hover:to-purple-200/50',
+      'bg-gradient-to-r from-orange-50 to-orange-100/50 text-orange-700 border-2 border-orange-400 hover:from-orange-100 hover:to-orange-200/50',
     ];
     return schemes[idx % schemes.length];
   };
 
   const getStepColorClass = (idx) => {
     const schemes = [
-      'bg-[#93C5FD] border-4 border-[#0F172A]', // sky-300
-      'bg-[#F9A8D4] border-4 border-[#0F172A]', // pink-300
-      'bg-[#FDE68A] border-4 border-[#0F172A]', // amber-300
-      'bg-[#A7F3D0] border-4 border-[#0F172A]', // emerald-300
-      'bg-[#C084FC] border-4 border-[#0F172A]', // purple-300
+      'bg-gradient-to-r from-blue-50 to-sky-100/30 border-4 border-blue-500 text-blue-900',
+      'bg-gradient-to-r from-pink-50 to-rose-100/30 border-4 border-pink-500 text-pink-900',
+      'bg-gradient-to-r from-amber-50 to-yellow-100/30 border-4 border-amber-500 text-amber-900',
+      'bg-gradient-to-r from-emerald-50 to-teal-100/30 border-4 border-emerald-500 text-emerald-900',
+      'bg-gradient-to-r from-purple-50 to-indigo-100/30 border-4 border-purple-500 text-purple-900',
     ];
     return schemes[idx % schemes.length];
   };
@@ -84,44 +85,66 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
           });
         }
       } else {
-        const title = (activeLevelConfig?.judul || '').toLowerCase();
-        if (title.includes('profil') || title.includes('kartu') || title.includes('easy-1')) {
-          setDecompChips(['Wadah body', 'Judul Profil', 'Paragraf Perkenalan', 'Foto Diri', 'Desain Kartu']);
-          setSteps(shuffleArray([
-            'Membuat wadah utama body',
-            'Menambahkan judul utama h1 berisi nama profil',
-            'Menyisipkan paragraf p untuk perkenalan diri',
-            'Menyisipkan gambar foto profil menggunakan img',
-            'Menambahkan style CSS untuk warna latar belakang kartu'
-          ]));
-        } else if (title.includes('musik') || title.includes('galeri') || title.includes('easy-2')) {
-          setDecompChips(['Wadah body', 'Kotak pembungkus div', 'Judul Musik H2', 'Daftar Lagu', 'Desain Album']);
-          setSteps(shuffleArray([
-            'Membuat wadah utama body',
-            'Menambahkan kotak pembungkus div di dalam body',
-            'Menyisipkan judul sedang h2 tentang musik favorit',
-            'Menyusun daftar lagu-lagu kesukaan',
-            'Menghias tata letak galeri dengan CSS'
-          ]));
-        } else {
-          setDecompChips(['Wadah body', 'Judul Halaman', 'Teks Konten', 'Daftar Item', 'Style CSS']);
-          setSteps(shuffleArray([
-            'Membuat wadah utama body',
-            'Menambahkan judul utama halaman',
-            'Menyisipkan konten utama',
-            'Menyusun daftar item pendukung',
-            'Menambahkan style hiasan CSS'
-          ]));
+        // Prevent wiping out state if already initialized locally
+        if (decompChips.length > 0 || selectedAbstract.length > 0 || Object.keys(chipCategories).length > 0 || steps.length > 0) {
+          return;
         }
-        setSelectedAbstract([]);
-        setChipCategories({});
-        setSessionId(null);
-        setAccumulatedScores({
-          decomposition: 0,
-          abstraction: 0,
-          pattern: 0,
-          algorithm: 0
-        });
+
+        // If store already has saved answers, load them to resume
+        if (ctJourneyAnswers && ctJourneyAnswers.decomposition && ctJourneyAnswers.decomposition.length > 0) {
+          setDecompChips(ctJourneyAnswers.decomposition);
+          setSelectedAbstract(ctJourneyAnswers.abstraction || []);
+          setChipCategories(ctJourneyAnswers.pattern || {});
+          setSteps(ctJourneyAnswers.algorithm || []);
+          
+          if (ctPreScore) {
+            setAccumulatedScores({
+              decomposition: ctPreScore.decomposition || 0,
+              abstraction: ctPreScore.abstraction || 0,
+              pattern: ctPreScore.pattern || 0,
+              algorithm: ctPreScore.algorithm || 0
+            });
+          }
+        } else {
+          const title = (activeLevelConfig?.judul || '').toLowerCase();
+          if (title.includes('profil') || title.includes('kartu') || title.includes('easy-1')) {
+            setDecompChips(['Wadah body', 'Judul Profil', 'Paragraf Perkenalan', 'Foto Diri', 'Desain Kartu']);
+            setSteps(shuffleArray([
+              'Membuat wadah utama body',
+              'Menambahkan judul utama h1 berisi nama profil',
+              'Menyisipkan paragraf p untuk perkenalan diri',
+              'Menyisipkan gambar foto profil menggunakan img',
+              'Menambahkan style CSS untuk warna latar belakang kartu'
+            ]));
+          } else if (title.includes('musik') || title.includes('galeri') || title.includes('easy-2')) {
+            setDecompChips(['Wadah body', 'Kotak pembungkus div', 'Judul Musik H2', 'Daftar Lagu', 'Desain Album']);
+            setSteps(shuffleArray([
+              'Membuat wadah utama body',
+              'Menambahkan kotak pembungkus div di dalam body',
+              'Menyisipkan judul sedang h2 tentang musik favorit',
+              'Menyusun daftar lagu-lagu kesukaan',
+              'Menghias tata letak galeri dengan CSS'
+            ]));
+          } else {
+            setDecompChips(['Wadah body', 'Judul Halaman', 'Teks Konten', 'Daftar Item', 'Style CSS']);
+            setSteps(shuffleArray([
+              'Membuat wadah utama body',
+              'Menambahkan judul utama halaman',
+              'Menyisipkan konten utama',
+              'Menyusun daftar item pendukung',
+              'Menambahkan style hiasan CSS'
+            ]));
+          }
+          setSelectedAbstract([]);
+          setChipCategories({});
+          setSessionId(null);
+          setAccumulatedScores({
+            decomposition: 0,
+            abstraction: 0,
+            pattern: 0,
+            algorithm: 0
+          });
+        }
       }
     }
   }, [isOpen, viewOnly, activeLevelConfig, ctJourneyAnswers, ctPreScore]);
@@ -320,24 +343,7 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
     return 85;
   };
 
-  const handleNext = () => {
-    if (viewOnly) {
-      if (currentStep < 5) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        onClose();
-      }
-      return;
-    }
-
-    // Before revealing the final scores (step 4 -> 5), warn that answers are locked.
-    if (currentStep === 4) {
-      const ok = window.confirm(
-        "Jika kamu lanjut, jawaban CT Journey akan dikunci dan kamu TIDAK bisa kembali mengubahnya. Lanjutkan?"
-      );
-      if (!ok) return;
-    }
-
+  const advanceStep = () => {
     // Save current step data to Zustand and Database if not already done
     let stepName = '';
     let answerData = null;
@@ -404,6 +410,27 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
     }
   };
 
+  const handleNext = () => {
+    if (viewOnly) {
+      if (currentStep < 5) {
+        setCurrentStep(currentStep + 1);
+      } else {
+        onClose();
+      }
+      return;
+    }
+
+    // Step 4 -> 5 locks the answers. Use an in-app confirmation instead of
+    // window.confirm(), which some browsers silently suppress (making the
+    // "Lanjutkan" button appear to do nothing).
+    if (currentStep === 4) {
+      setShowLockConfirm(true);
+      return;
+    }
+
+    advanceStep();
+  };
+
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
@@ -414,181 +441,191 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
   const isNextDisabled = () => {
     if (viewOnly) return false;
     if (currentStep === 1 && (!decompChips || decompChips.length === 0)) return true;
-    if (currentStep === 2 && (!selectedAbstract || selectedAbstract.length === 0)) return true;
+    if (currentStep === 2 && (!selectedAbstract || selectedAbstract.length !== 3)) return true;
     return false;
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-[#FFFDF9] border-4 border-[#0F172A] rounded-[24px] shadow-[8px_8px_0px_#0F172A] flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex justify-center items-center p-4 md:p-6">
+      <div className="w-full max-w-4xl max-h-[92vh] bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] flex flex-col overflow-hidden relative">
         {/* Header */}
-        <div className="bg-[#4F46E5] text-white px-6 py-4.5 flex justify-between items-center rounded-t-[18px] border-b-4 border-[#0F172A]">
-          <div className="flex items-center gap-2">
-            <i className="ti ti-brain text-2xl font-bold animate-pulse text-[#FACC15]" />
-            <h3 className="font-fredoka text-xl md:text-2xl font-bold tracking-wide">CT Journey - Fase Investigasi</h3>
+        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-6 py-4 flex justify-between items-center border-b-4 border-[#0F172A] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-white/10 w-9 h-9 rounded-xl border border-white/20 flex items-center justify-center shadow-inner">
+              <i className="ti ti-brain text-xl font-bold animate-pulse text-yellow-300" />
+            </div>
+            <h3 className="font-fredoka text-lg md:text-xl font-bold tracking-wide">CT Journey · Penyelidikan Berpikir Komputasional</h3>
           </div>
-          <div className="font-nunito font-bold text-xs bg-black/20 px-3 py-1.5 rounded-xl border border-[#0F172A]/20">
-            LEVEL: {challengeContext.title}
+          <div className="font-fredoka font-black text-[10px] bg-yellow-400 text-slate-900 px-3 py-1.5 rounded-lg border-2 border-[#0F172A] shadow-[1.5px_1.5px_0px_#0F172A] uppercase tracking-wider">
+            {challengeContext.title}
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-[#F1F5F9] border-b-4 border-[#0F172A] p-4 flex justify-between items-center text-xs md:text-sm font-nunito font-black overflow-x-auto gap-2">
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all ${currentStep === 1 ? 'bg-[#FACC15] text-[#0F172A] border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A]' : 'border-slate-300 bg-white text-slate-500'}`}>
-            <span>1. Dekomposisi</span>
-          </div>
-          <i className="ti ti-chevron-right text-slate-400 font-bold" />
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all ${currentStep === 2 ? 'bg-[#3B82F6] text-white border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A]' : 'border-slate-300 bg-white text-slate-500'}`}>
-            <span>2. Abstraksi</span>
-          </div>
-          <i className="ti ti-chevron-right text-slate-400 font-bold" />
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all ${currentStep === 3 ? 'bg-[#EC4899] text-white border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A]' : 'border-slate-300 bg-white text-slate-500'}`}>
-            <span>3. Pola</span>
-          </div>
-          <i className="ti ti-chevron-right text-slate-400 font-bold" />
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all ${currentStep === 4 ? 'bg-[#F97316] text-white border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A]' : 'border-slate-300 bg-white text-slate-500'}`}>
-            <span>4. Algoritma</span>
-          </div>
-          <i className="ti ti-chevron-right text-slate-400 font-bold" />
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all ${currentStep === 5 ? 'bg-[#10B981] text-white border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A]' : 'border-slate-300 bg-white text-slate-500'}`}>
-            <span>5. Ringkasan</span>
-          </div>
+        {/* Progress Bar (Light capsule pills) */}
+        <div className="w-full bg-[#F8FAFC] border-b-4 border-[#0F172A] p-4 flex justify-between items-center text-xs md:text-sm font-fredoka font-bold overflow-x-auto gap-2 select-none shrink-0">
+          {[
+            { step: 1, label: '1. Dekomposisi', icon: 'ti-layout-grid-add', activeColor: 'bg-gradient-to-r from-amber-400 to-amber-500 text-[#0F172A]' },
+            { step: 2, label: '2. Abstraksi', icon: 'ti-filter', activeColor: 'bg-gradient-to-r from-blue-500 to-indigo-650 text-white' },
+            { step: 3, label: '3. Pola', icon: 'ti-subtask', activeColor: 'bg-gradient-to-r from-pink-500 to-rose-600 text-white' },
+            { step: 4, label: '4. Algoritma', icon: 'ti-list-numbers', activeColor: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white' },
+            { step: 5, label: '5. Ringkasan', icon: 'ti-certificate', activeColor: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white' },
+          ].map((s, idx) => (
+            <React.Fragment key={s.step}>
+              {idx > 0 && <i className="ti ti-chevron-right text-slate-400 font-bold shrink-0" />}
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all shrink-0 ${
+                currentStep === s.step 
+                  ? s.activeColor + ' border-[#0F172A] shadow-[2px_2px_0px_#0F172A] scale-102' 
+                  : 'border-slate-300 bg-white text-slate-400'
+              }`}>
+                <i className={`ti ${s.icon} text-sm`} />
+                <span>{s.label}</span>
+              </div>
+            </React.Fragment>
+          ))}
         </div>
 
         {/* Content Area */}
-        <div className="p-6 md:p-8 flex-1 overflow-y-auto flex flex-col gap-5 text-left bg-[#FFFDF9]">
+        <div className="p-5 md:p-6 flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 text-left bg-gradient-to-tr from-slate-50 via-white to-indigo-50/20">
           {currentStep === 1 && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <h4 className="font-fredoka text-xl md:text-2xl font-bold text-[#0F172A] flex items-center gap-2.5">
-                <span className="bg-[#FACC15] w-10 h-10 rounded-xl border-2 border-[#0F172A] flex items-center justify-center shadow-[2px_2px_0px_#0F172A]">
-                  <i className="ti ti-bulb text-[#0F172A] text-xl" />
+            <div className="flex flex-col gap-5 animate-fade-in">
+              <h4 className="font-fredoka text-base md:text-lg font-bold text-[#0F172A] flex items-center gap-2">
+                <span className="bg-[#FACC15] w-8 h-8 rounded-lg border-2 border-[#0F172A] flex items-center justify-center shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-bulb text-[#0F172A] text-base" />
                 </span>
                 Fase 1: Dekomposisi (Decomposition)
               </h4>
               
-              <div className="bg-[#FEF08A] border-4 border-[#0F172A] p-4.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-start gap-3">
-                <span className="text-2xl">💡</span>
-                <div>
-                  <p className="font-nunito text-sm md:text-base text-slate-800 font-black leading-relaxed">
-                    <strong>Dekomposisi</strong> adalah memecah masalah besar menjadi bagian-bagian kecil yang lebih mudah dikelola.
+              <div className="bg-gradient-to-r from-amber-50 to-[#FFFDF2] border-4 border-[#0F172A] p-5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex gap-3.5 relative overflow-hidden">
+                <div className="bg-amber-100 border-2 border-[#0F172A] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-bulb text-amber-700 text-lg" />
+                </div>
+                <div className="relative z-10 flex-1">
+                  <p className="font-nunito text-xs md:text-sm text-slate-800 font-bold leading-relaxed">
+                    <b>Dekomposisi</b> adalah memecah tantangan besar menjadi bagian-bagian kecil yang lebih mudah dikelola.
                   </p>
-                  <p className="font-nunito text-xs md:text-sm text-[#1D4ED8] font-black mt-1">
-                    Menurutmu, bagian atau elemen apa saja yang harus ada di halaman web "{challengeContext.title}" ini?
+                  <p className="font-fredoka text-xs md:text-sm text-blue-700 font-bold mt-1.5 leading-relaxed">
+                    <i className="ti ti-help text-sm inline-block mr-1.5 align-middle" /> Menurutmu, bagian atau elemen apa saja yang harus ada di halaman web "{challengeContext.title}" ini?
                   </p>
                 </div>
               </div>
 
               {!viewOnly && (
-                <form onSubmit={handleAddChip} className="flex gap-2 mt-1">
+                <form onSubmit={handleAddChip} className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Contoh: Wadah body, Judul profil, Paragraf perkenalan..."
+                    placeholder="Ketik lalu klik Tambah. Contoh: Wadah body, Judul profil, CSS hiasan..."
                     value={decompInput}
                     onChange={(e) => setDecompInput(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-white border-4 border-[#0F172A] rounded-xl font-nunito font-bold text-sm focus:outline-none focus:translate-x-0.5 focus:shadow-[2.5px_2.5px_0px_#0F172A] transition-all placeholder:text-slate-400"
+                    className="flex-1 px-4 py-3 bg-white border-4 border-[#0F172A] rounded-xl font-nunito font-bold text-xs md:text-sm focus:outline-none focus:translate-x-0.5 focus:shadow-[2px_2px_0px_#0F172A] transition-all placeholder:text-slate-400"
                   />
-                  <button type="submit" className="px-6 py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-nunito font-bold rounded-xl border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] transition-all cursor-pointer text-sm">
+                  <button type="submit" className="px-6 py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-fredoka font-bold rounded-xl border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] transition-all cursor-pointer text-xs md:text-sm">
                     Tambah
                   </button>
                 </form>
               )}
 
-              <div className="flex flex-wrap gap-3 py-2">
+              <div className="flex flex-wrap gap-2.5 py-2">
                 {decompChips.map((chip, idx) => (
                   <span
                     key={idx}
-                    className={`flex items-center gap-2 border-2 border-[#0F172A] px-4 py-2 rounded-xl font-nunito text-sm font-black shadow-[3px_3px_0px_#0F172A] transition-all transform hover:-translate-y-0.5 ${getChipColorClass(idx)}`}
+                    className={`flex items-center gap-2 border-2 border-[#0F172A] px-4 py-2 rounded-full font-fredoka text-xs font-bold shadow-[2.5px_2.5px_0px_#0F172A] transition-all transform hover:-translate-y-0.5 ${getChipColorClass(idx)}`}
                   >
                     {chip}
                     {!viewOnly && (
-                      <button type="button" onClick={() => handleRemoveChip(idx)} className="hover:text-red-400 cursor-pointer transition-colors flex items-center">
-                        <i className="ti ti-x text-sm font-bold" />
+                      <button type="button" onClick={() => handleRemoveChip(idx)} className="hover:text-red-400 cursor-pointer transition-colors flex items-center font-bold">
+                        <i className="ti ti-x text-xs" />
                       </button>
                     )}
                   </span>
                 ))}
                 {decompChips.length === 0 && (
-                  <p className="text-slate-500 font-nunito font-bold text-sm italic">Belum ada bagian yang ditambahkan.</p>
+                  <p className="text-slate-400 font-nunito font-bold text-xs italic">Belum ada bagian yang didefinisikan.</p>
                 )}
               </div>
             </div>
           )}
 
           {currentStep === 2 && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <h4 className="font-fredoka text-xl md:text-2xl font-bold text-[#0F172A] flex items-center gap-2.5">
-                <span className="bg-[#3B82F6] w-10 h-10 rounded-xl border-2 border-[#0F172A] flex items-center justify-center shadow-[2px_2px_0px_#0F172A]">
-                  <i className="ti ti-search text-white text-xl" />
+            <div className="flex flex-col gap-5 animate-fade-in">
+              <h4 className="font-fredoka text-base md:text-lg font-bold text-[#0F172A] flex items-center gap-2">
+                <span className="bg-[#3B82F6] w-8 h-8 rounded-lg border-2 border-[#0F172A] flex items-center justify-center shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-search text-white text-base" />
                 </span>
                 Fase 2: Abstraksi (Abstraction)
               </h4>
               
-              <div className="bg-[#BAE6FD] border-4 border-[#0F172A] p-4.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-start gap-3">
-                <span className="text-2xl">🔍</span>
-                <div>
-                  <p className="font-nunito text-sm md:text-base text-slate-800 font-black leading-relaxed">
-                    <strong>Abstraksi</strong> adalah menyaring informasi yang tidak penting dan memfokuskan diri pada hal-hal yang krusial.
+              <div className="bg-gradient-to-r from-blue-50 to-[#F0F7FF] border-4 border-[#0F172A] p-5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex gap-3.5 relative overflow-hidden">
+                <div className="bg-blue-100 border-2 border-[#0F172A] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-filter text-blue-700 text-lg" />
+                </div>
+                <div className="relative z-10 flex-1">
+                  <p className="font-nunito text-xs md:text-sm text-slate-800 font-bold leading-relaxed">
+                    <b>Abstraksi</b> adalah menyaring informasi yang tidak penting dan memfokuskan diri pada hal-hal yang krusial.
                   </p>
-                  <p className="font-nunito text-xs md:text-sm text-[#4338CA] font-black mt-1">
-                    Pilih tepat 3 bagian yang PALING penting untuk dibuat terlebih dahulu agar halaman web berfungsi dasar:
+                  <p className="font-fredoka text-xs md:text-sm text-indigo-700 font-bold mt-1.5 leading-relaxed">
+                    <i className="ti ti-target text-sm inline-block mr-1.5 align-middle" /> Pilih tepat <b>3 bagian</b> yang PALING penting untuk dibuat terlebih dahulu agar halaman web berfungsi dasar:
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
                 {decompChips.map((chip, idx) => {
                   const isSelected = selectedAbstract.includes(chip);
                   return (
                     <div
                       key={idx}
                       onClick={() => !viewOnly && handleToggleAbstract(chip)}
-                      className={`flex items-center gap-3 p-4 border-4 border-[#0F172A] rounded-2xl transition-all ${
-                        viewOnly ? 'cursor-default' : 'cursor-pointer hover:bg-slate-100 hover:-translate-y-0.5'
+                      className={`flex items-center justify-between p-4 border-4 border-[#0F172A] rounded-2xl transition-all select-none ${
+                        viewOnly ? 'cursor-default' : 'cursor-pointer hover:bg-slate-50 hover:-translate-y-0.5'
                       } ${isSelected
-                          ? 'bg-[#FACC15] text-[#0F172A] shadow-[5px_5px_0px_#0F172A] scale-[1.02]'
-                          : 'bg-white text-slate-800 shadow-[2.5px_2.5px_0px_#0F172A]'
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-650 text-white shadow-[4px_4px_0px_#0F172A] scale-[1.01]'
+                          : 'bg-white text-slate-800 shadow-[2px_2px_0px_#0F172A]'
                         }`}
                     >
-                      <div className={`w-6 h-6 border-2 border-[#0F172A] rounded-lg flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white'}`}>
-                        {isSelected && <i className="ti ti-check text-white text-sm font-bold" />}
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 border-2 rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white text-indigo-650' : 'bg-slate-50 border-slate-300'}`}>
+                          {isSelected && <i className="ti ti-check text-[10px] font-bold" />}
+                        </div>
+                        <span className="font-fredoka text-xs md:text-sm font-bold">{chip}</span>
                       </div>
-                      <span className="font-nunito text-sm md:text-base font-black">{chip}</span>
                     </div>
                   );
                 })}
               </div>
-              <p className="font-nunito text-sm text-slate-550 font-bold">Terpilih: {selectedAbstract.length}/3 bagian utama.</p>
+              <p className="font-fredoka text-xs text-slate-500 font-bold bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl w-fit">Terpilih: <span className="text-blue-600">{selectedAbstract.length}/3</span> bagian utama.</p>
             </div>
           )}
 
           {currentStep === 3 && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <h4 className="font-fredoka text-xl md:text-2xl font-bold text-[#0F172A] flex items-center gap-2.5">
-                <span className="bg-[#EC4899] w-10 h-10 rounded-xl border-2 border-[#0F172A] flex items-center justify-center shadow-[2px_2px_0px_#0F172A]">
-                  <i className="ti ti-palette text-white text-xl" />
+            <div className="flex flex-col gap-5 animate-fade-in">
+              <h4 className="font-fredoka text-base md:text-lg font-bold text-[#0F172A] flex items-center gap-2">
+                <span className="bg-[#EC4899] w-8 h-8 rounded-lg border-2 border-[#0F172A] flex items-center justify-center shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-palette text-white text-base" />
                 </span>
                 Fase 3: Pengenalan Pola (Pattern Recognition)
               </h4>
               
-              <div className="bg-[#FBCFE8] border-4 border-[#0F172A] p-4.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-start gap-3">
-                <span className="text-2xl">🎨</span>
-                <div>
-                  <p className="font-nunito text-sm md:text-base text-slate-800 font-black leading-relaxed">
-                    <strong>Pengenalan Pola</strong> adalah mencari kesamaan di antara bagian-bagian web untuk memecahkannya secara kolektif.
+              <div className="bg-gradient-to-r from-pink-50 to-[#FFF1F2] border-4 border-[#0F172A] p-5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex gap-3.5 relative overflow-hidden">
+                <div className="bg-pink-100 border-2 border-[#0F172A] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-subtask text-pink-700 text-lg" />
+                </div>
+                <div className="relative z-10 flex-1">
+                  <p className="font-nunito text-xs md:text-sm text-slate-800 font-bold leading-relaxed">
+                    <b>Pengenalan Pola</b> adalah mencari kesamaan di antara bagian-bagian web untuk memecahkannya secara kolektif.
                   </p>
-                  <p className="font-nunito text-xs md:text-sm text-[#BE185D] font-black mt-1">
-                    {viewOnly ? 'Kategori elemen web yang telah Anda kelompokkan:' : 'Kelompokkan setiap elemen web yang Anda dekomposisikan ke dalam kategori yang tepat di bawah ini:'}
+                  <p className="font-fredoka text-xs md:text-sm text-pink-700 font-bold mt-1.5 leading-relaxed">
+                    <i className="ti ti-layers-intersect text-sm inline-block mr-1.5 align-middle" /> Kelompokkan setiap elemen web ke dalam kategori yang tepat:
                   </p>
                 </div>
               </div>
 
               {/* Categorization controls */}
               {!viewOnly && (
-                <div className="flex flex-col gap-3 max-h-60 overflow-y-auto p-3 border-4 border-[#0F172A] rounded-2xl bg-white shadow-[3px_3px_0px_#0F172A]">
+                <div className="flex flex-col gap-2 max-h-56 overflow-y-auto p-3.5 border-4 border-[#0F172A] rounded-2xl bg-[#F8FAFC] shadow-[3px_3px_0px_#0F172A]">
                   {decompChips.map(chip => (
-                    <div key={chip} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#F8FAFC] border-2 border-[#0F172A] p-3 rounded-xl gap-2.5 shadow-sm">
-                      <span className="font-nunito text-sm font-black text-[#0F172A]">{chip}</span>
-                      <div className="flex gap-2">
+                    <div key={chip} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border-2 border-slate-200 hover:border-slate-300 p-3 rounded-xl gap-2.5 transition-colors">
+                      <span className="font-fredoka text-xs font-bold text-[#0F172A]">{chip}</span>
+                      <div className="flex gap-1.5">
                         {['Teks', 'Visual', 'Style'].map(cat => {
                           const isCurrent = chipCategories[chip] === cat;
                           return (
@@ -596,9 +633,9 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
                               key={cat}
                               type="button"
                               onClick={() => setChipCategories(prev => ({ ...prev, [chip]: cat }))}
-                              className={`px-4 py-1.5 border-2 border-[#0F172A] text-xs font-nunito font-black rounded-xl cursor-pointer transition-all ${isCurrent
-                                  ? cat === 'Teks' ? 'bg-[#10B981] text-white shadow-[1.5px_1.5px_0px_#0F172A]' : cat === 'Visual' ? 'bg-[#EC4899] text-white shadow-[1.5px_1.5px_0px_#0F172A]' : 'bg-[#FACC15] text-[#0F172A] shadow-[1.5px_1.5px_0px_#0F172A]'
-                                  : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-[#0F172A]'
+                              className={`px-3.5 py-1.5 border-2 border-[#0F172A] text-[10px] font-fredoka font-black rounded-lg cursor-pointer transition-all ${isCurrent
+                                  ? cat === 'Teks' ? 'bg-[#10B981] text-white shadow-[1px_1px_0px_#0F172A]' : cat === 'Visual' ? 'bg-[#EC4899] text-white shadow-[1px_1px_0px_#0F172A]' : 'bg-[#FACC15] text-[#0F172A] shadow-[1px_1px_0px_#0F172A]'
+                                  : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700'
                                 }`}
                             >
                               {cat}
@@ -616,21 +653,23 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
                 {['Teks', 'Visual', 'Style'].map(cat => {
                   const itemsInCat = decompChips.filter(chip => chipCategories[chip] === cat);
                   return (
-                    <div key={cat} className={`border-4 border-[#0F172A] rounded-2xl p-4.5 shadow-[4px_4px_0px_#0F172A] ${
-                      cat === 'Teks' ? 'bg-[#A7F3D0]' : cat === 'Visual' ? 'bg-[#FBCFE8]' : 'bg-[#FDE68A]'
+                    <div key={cat} className={`border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] ${
+                      cat === 'Teks' ? 'bg-[#ECFDF5]' : cat === 'Visual' ? 'bg-[#FFF1F2]' : 'bg-[#FFFBEB]'
                     }`}>
-                      <h5 className="font-fredoka font-black text-sm md:text-base mb-3 uppercase tracking-wide flex items-center gap-2 text-[#0F172A]">
-                        <i className={`ti ${cat === 'Teks' ? 'ti-text-size' : cat === 'Visual' ? 'ti-photo' : 'ti-palette'} text-lg`} />
+                      <h5 className={`font-fredoka font-black text-xs md:text-sm mb-3 uppercase tracking-wide flex items-center gap-1.5 ${
+                        cat === 'Teks' ? 'text-emerald-700' : cat === 'Visual' ? 'text-rose-700' : 'text-amber-700'
+                      }`}>
+                        <i className={`ti ${cat === 'Teks' ? 'ti-text-size' : cat === 'Visual' ? 'ti-photo' : 'ti-palette'} text-base`} />
                         {cat}
                       </h5>
-                      <div className="flex flex-col gap-2 min-h-[70px] bg-white/70 border-2 border-dashed border-[#0F172A] rounded-xl p-2.5">
+                      <div className="flex flex-col gap-2 min-h-[80px] bg-white border-2 border-dashed border-slate-350 rounded-xl p-2.5">
                         {itemsInCat.map(item => (
-                          <span key={item} className="bg-white border-2 border-[#0F172A] px-3 py-1.5 rounded-lg font-nunito text-xs md:text-sm font-black text-[#0F172A] text-center block leading-tight shadow-[1.5px_1.5px_0px_#0F172A] transition-all hover:scale-102">
+                          <span key={item} className="bg-white border-2 border-[#0F172A] px-3 py-1.5 rounded-lg font-nunito text-xs font-bold text-[#0F172A] text-center block shadow-[1.5px_1.5px_0px_#0F172A]">
                             {item}
                           </span>
                         ))}
                         {itemsInCat.length === 0 && (
-                          <span className="text-xs text-slate-500 font-nunito font-black italic text-center py-4">Kosong</span>
+                          <span className="text-[10px] text-slate-400 font-nunito font-bold italic text-center py-5">Belum ada</span>
                         )}
                       </div>
                     </div>
@@ -641,48 +680,52 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
           )}
 
           {currentStep === 4 && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <h4 className="font-fredoka text-xl md:text-2xl font-bold text-[#0F172A] flex items-center gap-2.5">
-                <span className="bg-[#F97316] w-10 h-10 rounded-xl border-2 border-[#0F172A] flex items-center justify-center shadow-[2px_2px_0px_#0F172A]">
-                  <i className="ti ti-rocket text-white text-xl animate-bounce" />
+            <div className="flex flex-col gap-5 animate-fade-in">
+              <h4 className="font-fredoka text-base md:text-lg font-bold text-[#0F172A] flex items-center gap-2">
+                <span className="bg-[#F97316] w-8 h-8 rounded-lg border-2 border-[#0F172A] flex items-center justify-center shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-rocket text-white text-base animate-bounce" />
                 </span>
                 Fase 4: Desain Algoritma (Algorithmic Thinking)
               </h4>
               
-              <div className="bg-[#FED7AA] border-4 border-[#0F172A] p-4.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-start gap-3">
-                <span className="text-2xl">🚀</span>
-                <div>
-                  <p className="font-nunito text-sm md:text-base text-slate-800 font-black leading-relaxed">
-                    <strong>Desain Algoritma</strong> adalah merancang langkah-langkah logis berurutan untuk menyelesaikan masalah.
+              <div className="bg-gradient-to-r from-orange-50 to-[#FFF7ED] border-4 border-[#0F172A] p-5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex gap-3.5 relative overflow-hidden">
+                <div className="bg-orange-100 border-2 border-[#0F172A] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-list-numbers text-orange-700 text-lg" />
+                </div>
+                <div className="relative z-10 flex-1">
+                  <p className="font-nunito text-xs md:text-sm text-slate-800 font-bold leading-relaxed">
+                    <b>Desain Algoritma</b> adalah merancang langkah-langkah logis berurutan untuk menyelesaikan masalah.
                   </p>
-                  <p className="font-nunito text-xs md:text-sm text-[#C2410C] font-black mt-1">
-                    {viewOnly ? 'Urutan langkah pembuatan kode halaman web yang telah Anda rancang:' : 'Urutan langkah pembuatan kode halaman web ini dari langkah pertama (atas) sampai langkah terakhir (bawah):'}
+                  <p className="font-fredoka text-xs md:text-sm text-orange-700 font-bold mt-1.5 leading-relaxed">
+                    <i className="ti ti-list text-sm inline-block mr-1.5 align-middle" /> Urutkan langkah pengerjaan berikut dari yang pertama (atas) ke terakhir (bawah):
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 py-2">
+              <div className="flex flex-col gap-2.5 py-2">
                 {steps.map((step, idx) => (
-                  <div key={idx} className={`flex items-center gap-4.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] transition-all hover:-translate-y-0.5 ${getStepColorClass(idx)}`}>
-                    <span className="font-fredoka text-sm font-bold text-[#0F172A] bg-white border-2 border-[#0F172A] w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <div key={idx} className={`flex items-center gap-4 rounded-xl shadow-[3px_3px_0px_#0F172A] p-3 transition-all hover:-translate-y-0.5 ${getStepColorClass(idx)}`}>
+                    <span className="font-fredoka text-xs font-bold text-[#0F172A] bg-white border-2 border-[#0F172A] w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
                       {idx + 1}
                     </span>
-                    <span className="font-nunito text-sm md:text-base font-black text-[#0F172A] flex-1">{step}</span>
+                    <span className="font-fredoka text-xs md:text-sm font-bold text-[#0F172A] flex-1 leading-snug">{step}</span>
                     {!viewOnly && (
-                      <div className="flex gap-1.5 bg-white border-2 border-[#0F172A] p-1 rounded-xl shadow-[1px_1px_0px_#0F172A]">
+                      <div className="flex gap-1 bg-white border-2 border-[#0F172A] p-0.5 rounded-lg shadow-[1px_1px_0px_#0F172A]">
                         <button
+                          type="button"
                           onClick={() => moveStep(idx, -1)}
                           disabled={idx === 0}
-                          className={`p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors ${idx === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                          className={`p-1 rounded hover:bg-slate-100 cursor-pointer transition-colors ${idx === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
                         >
-                          <i className="ti ti-arrow-up text-base font-bold" />
+                          <i className="ti ti-arrow-up text-xs font-bold text-slate-850" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => moveStep(idx, 1)}
                           disabled={idx === steps.length - 1}
-                          className={`p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors ${idx === steps.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                          className={`p-1 rounded hover:bg-slate-100 cursor-pointer transition-colors ${idx === steps.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
                         >
-                          <i className="ti ti-arrow-down text-base font-bold" />
+                          <i className="ti ti-arrow-down text-xs font-bold text-slate-855" />
                         </button>
                       </div>
                     )}
@@ -693,54 +736,56 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
           )}
 
           {currentStep === 5 && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <h4 className="font-fredoka text-xl md:text-2xl font-bold text-[#0F172A] flex items-center gap-2.5">
-                <span className="bg-[#10B981] w-10 h-10 rounded-xl border-2 border-[#0F172A] flex items-center justify-center shadow-[2px_2px_0px_#0F172A]">
-                  <i className="ti ti-certificate text-white text-xl animate-spin-slow" />
+            <div className="flex flex-col gap-5 animate-fade-in">
+              <h4 className="font-fredoka text-base md:text-lg font-bold text-[#0F172A] flex items-center gap-2">
+                <span className="bg-[#10B981] w-8 h-8 rounded-lg border-2 border-[#0F172A] flex items-center justify-center shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-certificate text-white text-base animate-spin-slow" />
                 </span>
                 Fase 5: Ringkasan Analisis & Rencana Kerja
               </h4>
               
-              <div className="bg-[#A7F3D0] border-4 border-[#0F172A] p-4.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-start gap-3">
-                <span className="text-2xl">🏆</span>
-                <div>
-                  <p className="font-nunito text-sm md:text-base text-slate-800 font-black leading-relaxed">
-                    <strong>Fase 5: Ringkasan Analisis & Rencana Kerja</strong>
+              <div className="bg-gradient-to-r from-emerald-50 to-[#ECFDF5] border-4 border-[#0F172A] p-5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex gap-3.5 relative overflow-hidden">
+                <div className="bg-emerald-100 border-2 border-[#0F172A] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0px_#0F172A]">
+                  <i className="ti ti-certificate text-emerald-700 text-lg" />
+                </div>
+                <div className="relative z-10 flex-1">
+                  <p className="font-nunito text-xs md:text-sm text-slate-800 font-bold leading-relaxed">
+                    <b>Fase 5: Ringkasan Analisis & Rencana Kerja</b>
                   </p>
-                  <p className="font-nunito text-xs md:text-sm text-[#047857] font-black mt-1">
-                    Rencana investigasi berpikir komputasional Anda yang berhasil dirumuskan:
+                  <p className="font-fredoka text-xs md:text-sm text-emerald-700 font-bold mt-1.5 leading-relaxed">
+                    <i className="ti ti-check text-sm inline-block mr-1.5 align-middle" /> Rencana berpikir komputasional Anda berhasil dirumuskan!
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-2 text-center">
-                <div className="bg-[#3B82F6] border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] transform transition-transform hover:scale-103 text-white">
-                  <p className="font-fredoka text-sm font-black uppercase tracking-wider text-blue-100">Dekomposisi</p>
-                  <p className="font-fredoka text-3xl md:text-4xl font-bold mt-2.5">{accumulatedScores.decomposition || 85}</p>
+                <div className="bg-gradient-to-br from-blue-400 to-blue-600 border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] text-white">
+                  <p className="font-fredoka text-[10px] md:text-xs font-black uppercase tracking-wider text-blue-100">Dekomposisi</p>
+                  <p className="font-fredoka text-2xl md:text-3xl font-black mt-2">{accumulatedScores.decomposition || 85}</p>
                 </div>
-                <div className="bg-[#EC4899] border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] transform transition-transform hover:scale-103 text-white">
-                  <p className="font-fredoka text-sm font-black uppercase tracking-wider text-pink-100">Abstraksi</p>
-                  <p className="font-fredoka text-3xl md:text-4xl font-bold mt-2.5">{accumulatedScores.abstraction || 88}</p>
+                <div className="bg-gradient-to-br from-rose-400 to-pink-600 border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] text-white bg-rose-500">
+                  <p className="font-fredoka text-[10px] md:text-xs font-black uppercase tracking-wider text-pink-100">Abstraksi</p>
+                  <p className="font-fredoka text-2xl md:text-3xl font-black mt-2">{accumulatedScores.abstraction || 88}</p>
                 </div>
-                <div className="bg-[#FACC15] border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] transform transition-transform hover:scale-103 text-[#0F172A]">
-                  <p className="font-fredoka text-sm font-black uppercase tracking-wider text-amber-900">Pola</p>
-                  <p className="font-fredoka text-3xl md:text-4xl font-bold mt-2.5">{accumulatedScores.pattern || 80}</p>
+                <div className="bg-gradient-to-br from-amber-400 to-amber-505 border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] text-[#0F172A] bg-amber-400">
+                  <p className="font-fredoka text-[10px] md:text-xs font-black uppercase tracking-wider text-amber-900">Pola</p>
+                  <p className="font-fredoka text-2xl md:text-3xl font-black mt-2">{accumulatedScores.pattern || 80}</p>
                 </div>
-                <div className="bg-[#10B981] border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] transform transition-transform hover:scale-103 text-white">
-                  <p className="font-fredoka text-sm font-black uppercase tracking-wider text-emerald-100">Algoritma</p>
-                  <p className="font-fredoka text-3xl md:text-4xl font-bold mt-2.5">{accumulatedScores.algorithm || 85}</p>
+                <div className="bg-gradient-to-br from-emerald-400 to-teal-600 border-4 border-[#0F172A] rounded-2xl p-4 shadow-[4px_4px_0px_#0F172A] text-white bg-emerald-500">
+                  <p className="font-fredoka text-[10px] md:text-xs font-black uppercase tracking-wider text-emerald-100">Algoritma</p>
+                  <p className="font-fredoka text-2xl md:text-3xl font-black mt-2">{accumulatedScores.algorithm || 85}</p>
                 </div>
               </div>
 
-              <div className="border-4 border-[#0F172A] bg-[#E6F4EA] p-5 rounded-[20px] text-left mt-3 flex items-start gap-4 shadow-[4px_4px_0px_#0f172a]">
-                <div className="bg-[#34D399] border-2 border-[#0F172A] text-[#0F172A] w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#0F172A]">
-                  <i className="ti ti-circle-check text-xl font-bold" />
+              <div className="border-4 border-[#0F172A] bg-[#E8F8EE] p-5 rounded-[20px] text-left mt-3 flex items-start gap-4 shadow-[4px_4px_0px_#0F172A]">
+                <div className="bg-[#34D399] border-2 border-[#0F172A] text-[#0F172A] w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#0F172A]">
+                  <i className="ti ti-circle-check text-lg font-bold" />
                 </div>
                 <div>
-                  <h5 className="font-fredoka font-bold text-emerald-900 text-base mb-1">
+                  <h5 className="font-fredoka font-bold text-emerald-900 text-sm md:text-base mb-0.5">
                     {viewOnly ? 'Hasil analisis CT tersimpan!' : 'Rencana berpikirmu sudah siap!'}
                   </h5>
-                  <p className="font-nunito text-sm text-slate-800 font-bold leading-relaxed">
+                  <p className="font-nunito text-xs md:text-sm text-slate-800 font-bold leading-relaxed">
                     {viewOnly
                       ? 'Kamu telah menyelesaikan semua fase CT Journey ini sebelumnya. Analisis berpikir komputasional ini menjadi bekalmu saat coding di Workspace.'
                       : 'Kamu sudah memecah masalah, memilih bagian penting, mengenali pola, dan menyusun algoritmanya. Gunakan rencana ini sebagai panduan saat merakit kode di fase Action nanti. Semangat!'}
@@ -752,31 +797,62 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
 
           {/* AI feedback section */}
           {aiFeedback && (
-            <div className="mt-4 border-4 border-[#0F172A] bg-[#8B5CF6] text-white p-5 rounded-[20px] flex items-start gap-4 shadow-[5px_5px_0px_#0f172a] animate-fade-in">
-              <div className="bg-white border-2 border-[#0F172A] text-[#8B5CF6] w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#0F172A]">
-                <i className="ti ti-robot text-xl animate-bounce" />
+            <div className="mt-4 border-4 border-[#0F172A] bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-5 rounded-[20px] flex items-start gap-4 shadow-[4px_4px_0px_#0F172A] animate-fade-in">
+              <div className="bg-white border-2 border-[#0F172A] text-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#0F172A]">
+                <i className="ti ti-robot text-lg animate-bounce" />
               </div>
               <div className="text-left">
-                <p className="font-fredoka text-sm md:text-base font-black flex items-center gap-1.5 text-[#FACC15]">
-                  Analisis AI
+                <p className="font-fredoka text-xs md:text-sm font-black flex items-center gap-1.5 text-yellow-300">
+                  <i className="ti ti-sparkles text-sm animate-pulse" /> Analisis AI WebCraft
                 </p>
-                <p className="font-nunito text-xs md:text-sm font-black leading-relaxed mt-2.5 text-white">{aiFeedback}</p>
+                <p className="font-nunito text-xs md:text-sm font-semibold leading-relaxed mt-2 text-white">{aiFeedback}</p>
               </div>
             </div>
           )}
         </div>
 
+        {/* In-app lock confirmation (replaces window.confirm for reliability) */}
+        {showLockConfirm && (
+          <div className="absolute inset-0 z-30 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] max-w-sm w-full p-5 text-center">
+              <div className="mx-auto w-12 h-12 bg-amber-100 border-2 border-[#0F172A] rounded-xl flex items-center justify-center mb-3 shadow-[2px_2px_0px_#0F172A]">
+                <i className="ti ti-lock text-amber-700 text-xl" />
+              </div>
+              <h4 className="font-fredoka font-bold text-[#0F172A] text-base mb-1">Kunci jawaban CT Journey?</h4>
+              <p className="font-nunito text-xs text-slate-600 font-semibold mb-4 leading-relaxed">
+                Setelah lanjut, jawabanmu akan dikunci dan tidak bisa diubah lagi.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowLockConfirm(false)}
+                  className="px-4 py-2 border-2 border-[#0F172A] bg-white text-slate-700 rounded-xl text-xs font-fredoka font-bold cursor-pointer hover:bg-slate-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowLockConfirm(false); advanceStep(); }}
+                  className="px-4 py-2 bg-blue-600 text-white border-2 border-[#0F172A] rounded-xl text-xs font-fredoka font-bold cursor-pointer shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 transition-all"
+                >
+                  Ya, lanjutkan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="border-t-4 border-[#0F172A] px-6 py-5 flex justify-between items-center bg-[#FFFDF9] rounded-b-[18px]">
+        <div className="border-t-4 border-[#0F172A] px-6 py-4.5 flex justify-between items-center bg-white rounded-b-[24px] shrink-0">
           {currentStep < 5 ? (
             <button
               onClick={onClose}
-              className="px-5 py-2.5 border-4 border-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] text-slate-700 font-nunito font-bold rounded-xl text-xs md:text-sm transition-all cursor-pointer shadow-[2.5px_2.5px_0px_#0F172A] active:translate-y-0.5 active:shadow-[1px_1px_0px_#0F172A]"
+              className="px-5.5 py-2.5 border-4 border-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] text-slate-700 font-fredoka font-bold rounded-xl text-xs md:text-sm shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
             >
               Tutup
             </button>
           ) : (
-            <div /> /* Empty div to keep flex space-between */
+            <div />
           )}
 
           <div className="flex gap-3 items-center">
@@ -784,7 +860,7 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-5 py-2.5 bg-white border-4 border-[#0F172A] text-slate-700 font-nunito font-bold rounded-xl text-xs md:text-sm shadow-[2.5px_2.5px_0px_#0F172A] hover:bg-[#F8FAFC] cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-[0.5px]"
+                className="px-5.5 py-2.5 bg-white border-4 border-[#0F172A] text-slate-700 font-fredoka font-bold rounded-xl text-xs md:text-sm shadow-[3px_3px_0px_#0F172A] hover:bg-[#F8FAFC] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all"
               >
                 Kembali
               </button>
@@ -795,13 +871,15 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
                 onClick={handleAnalyzeStep}
                 disabled={isLoadingFeedback || isNextDisabled()}
                 title="Minta tanggapan AI atas jawabanmu"
-                className={`px-5 h-11 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-fredoka font-bold rounded-xl text-xs md:text-sm border-4 border-[#0F172A] shadow-[3px_3px_0px_#0f172a] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center gap-1.5 ${(isLoadingFeedback || isNextDisabled()) ? 'opacity-50 cursor-not-allowed shadow-none transform-none' : ''}`}
+                className={`px-5.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-fredoka font-bold rounded-xl text-xs md:text-sm border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  (isLoadingFeedback || isNextDisabled()) ? 'opacity-50 cursor-not-allowed shadow-none transform-none active:translate-y-0' : ''
+                }`}
               >
                 {isLoadingFeedback ? (
                   <i className="ti ti-loader animate-spin text-sm" />
                 ) : (
                   <>
-                    <i className="ti ti-sparkles text-sm text-[#FACC15] animate-pulse" />
+                    <i className="ti ti-sparkles text-sm text-yellow-300 animate-pulse" />
                     <span>Analisis AI</span>
                   </>
                 )}
@@ -811,8 +889,9 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
             <button
               onClick={handleNext}
               disabled={isNextDisabled()}
-              className={`px-6 py-2.5 bg-[#3B82F6] hover:bg-[#2563EB] text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-nunito font-black rounded-xl text-xs md:text-sm hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all ${isNextDisabled() ? 'opacity-50 cursor-not-allowed shadow-none transform-none' : ''
-                }`}
+              className={`px-5.5 py-2.5 bg-[#3B82F6] hover:bg-[#2563EB] text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-fredoka font-bold rounded-xl text-xs md:text-sm hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all ${
+                isNextDisabled() ? 'opacity-50 cursor-not-allowed shadow-none transform-none active:translate-y-0' : ''
+              }`}
             >
               {currentStep === 5 ? 'Selesai' : 'Lanjutkan'}
             </button>
