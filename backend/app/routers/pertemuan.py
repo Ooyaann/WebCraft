@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 
 from app.database import get_db
 from app.models import Room, Pertemuan, LearningTask, ProjectTask, User
-from app.schemas import PertemuanCreate, PertemuanResponse, PertemuanUpdate
+from app.schemas import PertemuanCreate, PertemuanResponse, PertemuanUpdate, LearningTaskRulesUpdate
 from app.routers.auth import get_current_user
 
 router = APIRouter(tags=["pertemuan"])
@@ -260,4 +260,55 @@ async def get_task_details(
         }
         
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tugas tidak ditemukan.")
+
+
+async def _get_owned_learning_task(task_or_pertemuan_id: str, current_user: User, db: AsyncSession, by: str):
+    """Load a LearningTask by its own id ('task') or by pertemuan id ('pertemuan'),
+    ensuring the current guru owns the room. Raises 403/404 as appropriate."""
+    if current_user.role != "guru":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hanya guru yang dapat mengelola aturan validasi.")
+
+    column = LearningTask.id if by == "task" else LearningTask.pertemuan_id
+    res = await db.execute(
+        select(LearningTask)
+        .options(selectinload(LearningTask.pertemuan).selectinload(Pertemuan.room))
+        .where(column == task_or_pertemuan_id)
+    )
+    lt = res.scalars().first()
+    if not lt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tugas latihan tidak ditemukan.")
+    room = lt.pertemuan.room if lt.pertemuan else None
+    if not room or room.guru_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hanya guru pemilik kelas yang dapat mengelola aturan ini.")
+    return lt
+
+
+# Router GET: Get the learning task (and its validator rules) for a pertemuan (Guru)
+@router.get("/pertemuan/{pertemuan_id}/learning-task")
+async def get_learning_task_for_pertemuan(
+    pertemuan_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    lt = await _get_owned_learning_task(pertemuan_id, current_user, db, by="pertemuan")
+    return {
+        "id": lt.id,
+        "judul": lt.judul,
+        "validator_rules_json": lt.validator_rules_json or [],
+        "max_attempts_before_ai_hint": lt.max_attempts_before_ai_hint,
+    }
+
+
+# Router PUT: Replace the validator rules of a learning task (Guru)
+@router.put("/pertemuan/learning-tasks/{task_id}/rules")
+async def update_learning_task_rules(
+    task_id: str,
+    payload: LearningTaskRulesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    lt = await _get_owned_learning_task(task_id, current_user, db, by="task")
+    lt.validator_rules_json = [rule.model_dump(exclude_none=True) for rule in payload.rules]
+    await db.flush()
+    return {"id": lt.id, "validator_rules_json": lt.validator_rules_json}
 

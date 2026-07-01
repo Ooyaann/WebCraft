@@ -90,6 +90,16 @@ class PertemuanResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ValidatorRule(BaseModel):
+    type: str = Field(..., max_length=40)
+    error_message: str = Field(..., min_length=1, max_length=300)
+    selector: Optional[str] = Field(default=None, max_length=40)
+    parent: Optional[str] = Field(default=None, max_length=40)
+    child: Optional[str] = Field(default=None, max_length=40)
+
+class LearningTaskRulesUpdate(BaseModel):
+    rules: List[ValidatorRule]
+
 class PertemuanUpdate(BaseModel):
     judul: Optional[str] = Field(default=None, min_length=1, max_length=200)
     urutan: Optional[int] = None

@@ -16,6 +16,13 @@ export default function RoomDetail() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  // Validator-rule editor (teacher)
+  const [showRulesModal, setShowRulesModal] = useState(false);
+  const [rulesTaskId, setRulesTaskId] = useState(null);
+  const [rulesPertJudul, setRulesPertJudul] = useState('');
+  const [rulesList, setRulesList] = useState([]);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesSaving, setRulesSaving] = useState(false);
 
   // Form states
   const [announcementText, setAnnouncementText] = useState('');
@@ -43,6 +50,63 @@ export default function RoomDetail() {
   const [materiUrl, setMateriUrl] = useState('');
 
   const isTeacher = user?.role === 'guru';
+
+  // --- Validator rule editor (teacher) ---
+  const handleOpenRulesModal = async (pert) => {
+    setShowRulesModal(true);
+    setRulesPertJudul(pert.judul);
+    setRulesTaskId(null);
+    setRulesList([]);
+    setRulesLoading(true);
+    try {
+      const res = await api.get(`/pertemuan/${pert.id}/learning-task`);
+      setRulesTaskId(res.data.id);
+      setRulesList(res.data.validator_rules_json || []);
+    } catch (err) {
+      console.error('Gagal memuat aturan validasi:', err);
+      alert('Gagal memuat aturan validasi tugas ini.');
+      setShowRulesModal(false);
+    } finally {
+      setRulesLoading(false);
+    }
+  };
+
+  const updateRule = (index, field, value) => {
+    setRulesList(prev => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  };
+
+  const addRule = () => {
+    setRulesList(prev => [...prev, { type: 'exists', selector: '', error_message: '' }]);
+  };
+
+  const removeRule = (index) => {
+    setRulesList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveRules = async () => {
+    // Keep only the fields relevant to each rule type.
+    const cleaned = rulesList.map(r => {
+      const base = { type: r.type, error_message: (r.error_message || '').trim() };
+      if (r.type === 'child_of') {
+        return { ...base, parent: (r.parent || '').trim(), child: (r.child || '').trim() };
+      }
+      return { ...base, selector: (r.selector || '').trim() };
+    });
+    if (cleaned.some(r => !r.error_message)) {
+      alert('Setiap aturan harus memiliki pesan kesalahan.');
+      return;
+    }
+    setRulesSaving(true);
+    try {
+      await api.put(`/pertemuan/learning-tasks/${rulesTaskId}/rules`, { rules: cleaned });
+      setShowRulesModal(false);
+    } catch (err) {
+      console.error('Gagal menyimpan aturan:', err);
+      alert('Gagal menyimpan aturan validasi.');
+    } finally {
+      setRulesSaving(false);
+    }
+  };
 
   const loadData = () => {
     setIsLoading(true);
@@ -482,6 +546,14 @@ export default function RoomDetail() {
                           </button>
 
                           <button
+                            onClick={() => handleOpenRulesModal(pert)}
+                            className="px-3 py-1.5 bg-sky-50 text-sky-700 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <i className="ti ti-list-check" />
+                            Aturan
+                          </button>
+
+                          <button
                             onClick={() => handleDeletePertemuan(pert.id)}
                             className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border-2 border-red-200 font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_rgba(239,68,68,0.15)] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
                           >
@@ -904,6 +976,61 @@ export default function RoomDetail() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Validator Rules Editor Modal (Teacher) */}
+      {showRulesModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4" onClick={() => !rulesSaving && setShowRulesModal(false)}>
+          <div className="bg-white border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b-4 border-[#0F172A] bg-sky-50 rounded-t-xl">
+              <div className="text-left">
+                <h3 className="font-fredoka text-base font-bold text-[#0F172A] flex items-center gap-2"><i className="ti ti-list-check text-sky-600" /> Aturan Validasi Misi</h3>
+                <p className="text-[11px] text-slate-500 font-bold mt-0.5">{rulesPertJudul}</p>
+              </div>
+              <button onClick={() => setShowRulesModal(false)} className="p-1.5 hover:bg-slate-200 rounded-lg cursor-pointer"><i className="ti ti-x" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {rulesLoading ? (
+                <div className="text-center py-8 text-slate-500 font-bold text-sm">Memuat aturan...</div>
+              ) : rulesList.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 font-bold text-sm">Belum ada aturan. Tambahkan aturan pertama.</div>
+              ) : (
+                rulesList.map((rule, i) => (
+                  <div key={i} className="border-2 border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select value={rule.type} onChange={(e) => updateRule(i, 'type', e.target.value)} className="border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold bg-white cursor-pointer">
+                        <option value="exists">Elemen harus ada</option>
+                        <option value="child_of">Elemen di dalam elemen lain</option>
+                      </select>
+                      {rule.type === 'child_of' ? (
+                        <>
+                          <input value={rule.child || ''} onChange={(e) => updateRule(i, 'child', e.target.value)} placeholder="anak (mis. h1)" className="w-24 border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs" />
+                          <span className="text-xs text-slate-500 font-bold">di dalam</span>
+                          <input value={rule.parent || ''} onChange={(e) => updateRule(i, 'parent', e.target.value)} placeholder="induk (mis. body)" className="w-24 border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs" />
+                        </>
+                      ) : (
+                        <input value={rule.selector || ''} onChange={(e) => updateRule(i, 'selector', e.target.value)} placeholder="elemen (mis. h1)" className="w-32 border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs" />
+                      )}
+                      <button onClick={() => removeRule(i)} className="ml-auto p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"><i className="ti ti-trash text-sm" /></button>
+                    </div>
+                    <input value={rule.error_message || ''} onChange={(e) => updateRule(i, 'error_message', e.target.value)} placeholder="Pesan kesalahan untuk siswa" className="w-full border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs" />
+                  </div>
+                ))
+              )}
+              {!rulesLoading && (
+                <button onClick={addRule} className="w-full border-2 border-dashed border-slate-300 rounded-xl py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer flex items-center justify-center gap-1"><i className="ti ti-plus" /> Tambah Aturan</button>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 px-5 py-4 border-t-4 border-[#0F172A]">
+              <button onClick={() => setShowRulesModal(false)} disabled={rulesSaving} className="px-4 py-2 border-2 border-[#0F172A] bg-white text-slate-700 font-bold rounded-xl text-xs cursor-pointer">Batal</button>
+              <button onClick={handleSaveRules} disabled={rulesSaving || rulesLoading} className="px-5 py-2.5 bg-blue-600 text-white border-2 border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A] font-fredoka text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5">
+                {rulesSaving ? (<><i className="ti ti-loader animate-spin" /> Menyimpan...</>) : (<><i className="ti ti-circle-check" /> Simpan Aturan</>)}
+              </button>
+            </div>
           </div>
         </div>
       )}
