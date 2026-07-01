@@ -9,8 +9,8 @@
   --color-game-pink: #EC4899;
   --color-game-indigo: #6366F1;
 
-  --font-fredoka: "Fredoka", sans-serif;
-  --font-nunito: "Nunito", sans-serif;
+  --font-fredoka: "Fredoka Variable", "Fredoka", sans-serif;
+  --font-nunito: "Nunito Variable", "Nunito", sans-serif;
 
   --shadow-hard-sm: 2px 2px 0px #0F172A;
   --shadow-hard: 4px 4px 0px #0F172A;
@@ -256,6 +256,7 @@ h6 {
   word-wrap: normal;
   direction: ltr;
   -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 
