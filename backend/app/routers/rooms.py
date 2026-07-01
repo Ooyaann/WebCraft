@@ -155,7 +155,6 @@ async def update_room(
         room.announcement = room_update.announcement
 
     await db.flush()
-    await db.commit()
     return room
 
 # Router GET: Get room members (students)

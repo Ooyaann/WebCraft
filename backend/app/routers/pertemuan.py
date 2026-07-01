@@ -104,7 +104,7 @@ async def create_pertemuan(
     )
     db.add(new_project_task)
     
-    await db.commit()
+    await db.flush()
     return new_pert
 
 # Router GET: List all Pertemuan in a room
@@ -185,7 +185,6 @@ async def update_pertemuan(
         pert.materi_list_json = pert_update.materi_list_json
 
     await db.flush()
-    await db.commit()
     return pert
 
 # Router DELETE: Delete Pertemuan (Guru only)
@@ -211,7 +210,7 @@ async def delete_pertemuan(
         )
 
     await db.delete(pert)
-    await db.commit()
+    await db.flush()
     return {"message": "Pertemuan berhasil dihapus.", "id": pertemuan_id}
 
 # Router GET: Fetch specific task details by task ID (LearningTask or ProjectTask)
