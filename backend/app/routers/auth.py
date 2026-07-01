@@ -1,5 +1,7 @@
 import os
 import uuid
+import hashlib
+import secrets
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -9,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.database import get_db
-from app.models import User
-from app.schemas import UserCreate, UserLogin, UserResponse, Token
+from app.models import User, RefreshToken
+from app.schemas import UserCreate, UserLogin, UserResponse, Token, RefreshRequest, TokenRefreshResponse
 
 # Security Contexts
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,9 +23,31 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
     raise RuntimeError("JWT_SECRET environment variable is not set!")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+# Short-lived access token; long sessions are handled by refresh tokens below.
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _hash_token(raw_token: str) -> str:
+    """Hash an opaque refresh token before storing it (never store the raw value)."""
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+async def create_refresh_token(user_id: str, db: AsyncSession) -> str:
+    """Issue a new opaque refresh token, persisting only its hash. Returns raw token."""
+    raw_token = secrets.token_urlsafe(48)
+    expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    db.add(RefreshToken(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        token_hash=_hash_token(raw_token),
+        expires_at=expires_at,
+        revoked=False,
+    ))
+    await db.flush()
+    return raw_token
 
 # Password Helper Operations
 def verify_password(plain_password, hashed_password):
@@ -111,10 +135,12 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.flush() # Sync ID
 
     access_token = create_access_token(data={"sub": db_user.id, "role": db_user.role})
+    refresh_token = await create_refresh_token(db_user.id, db)
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": db_user
+        "user": db_user,
+        "refresh_token": refresh_token
     }
 
 # Router POST: Login User
@@ -130,13 +156,62 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
         )
 
     access_token = create_access_token(data={"sub": user.id, "role": user.role})
+    refresh_token = await create_refresh_token(user.id, db)
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": user
+        "user": user,
+        "refresh_token": refresh_token
     }
 
 # Router GET: Get Current User Profile (Token Verification)
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+# Router POST: Rotate a refresh token into a fresh access + refresh token pair
+@router.post("/refresh", response_model=TokenRefreshResponse)
+async def refresh_access_token(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    invalid = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Refresh token tidak sah atau kedaluwarsa.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(payload.refresh_token))
+    )
+    stored = result.scalars().first()
+    if not stored or stored.revoked:
+        raise invalid
+
+    expires_at = stored.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=datetime.timezone.utc)
+    if expires_at < datetime.datetime.now(datetime.timezone.utc):
+        raise invalid
+
+    user_res = await db.execute(select(User).where(User.id == stored.user_id))
+    user = user_res.scalars().first()
+    if not user:
+        raise invalid
+
+    # Rotate: revoke the used token and issue a fresh pair.
+    stored.revoked = True
+    new_access = create_access_token(data={"sub": user.id, "role": user.role})
+    new_refresh = await create_refresh_token(user.id, db)
+    return {
+        "access_token": new_access,
+        "token_type": "bearer",
+        "refresh_token": new_refresh,
+    }
+
+# Router POST: Revoke a refresh token (logout)
+@router.post("/logout")
+async def logout(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(payload.refresh_token))
+    )
+    stored = result.scalars().first()
+    if stored:
+        stored.revoked = True
+    return {"message": "Logout berhasil."}

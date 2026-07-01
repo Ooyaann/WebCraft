@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import api from '../../services/api';
 import WebCraftLogo from '../common/WebCraftLogo';
 
 const menuConfig = {
@@ -66,8 +67,18 @@ export default function Sidebar() {
   // Check if sidebar text/icons should be light or dark based on background
   const isLightText = role === 'siswa' || role === 'guru';
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem('webcraft_refresh');
+    if (refreshToken) {
+      // Best-effort server-side revoke; ignore failures so logout always proceeds.
+      try {
+        await api.post('/auth/logout', { refresh_token: refreshToken });
+      } catch (e) {
+        // no-op
+      }
+    }
     localStorage.removeItem('webcraft_token');
+    localStorage.removeItem('webcraft_refresh');
     logout();
     navigate('/');
     setIsOpenMobile(false);

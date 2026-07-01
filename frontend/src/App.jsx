@@ -122,6 +122,7 @@ export default function App() {
         .catch(err => {
           console.error("Token invalid, removing...", err);
           localStorage.removeItem('webcraft_token');
+          localStorage.removeItem('webcraft_refresh');
           setUser(null);
           setActiveRoom(null);
         });

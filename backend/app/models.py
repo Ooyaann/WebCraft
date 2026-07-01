@@ -33,6 +33,18 @@ class User(Base):
     project_submissions = relationship("ProjectSubmission", back_populates="siswa")
     creative_projects = relationship("CreativeProject", back_populates="siswa", cascade="all, delete-orphan")
 
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Only a hash of the opaque refresh token is stored, never the raw value.
+    token_hash = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    revoked = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now)
+
+
 class Room(Base):
     __tablename__ = "rooms"
 

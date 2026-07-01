@@ -26,7 +26,7 @@ export default function Login() {
         password
       });
 
-      const { access_token, user: userData } = response.data;
+      const { access_token, refresh_token, user: userData } = response.data;
 
       // Prevent role mismatch
       if (userData.role !== role) {
@@ -34,6 +34,9 @@ export default function Login() {
       }
 
       localStorage.setItem('webcraft_token', access_token);
+      if (refresh_token) {
+        localStorage.setItem('webcraft_refresh', refresh_token);
+      }
 
       // Clean workspace to prevent state leakage
       resetWorkspace();
