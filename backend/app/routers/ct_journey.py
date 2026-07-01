@@ -65,21 +65,21 @@ async def save_ct_journey_step(
         if session.is_locked:
             raise HTTPException(status_code=400, detail="Sesi CT ini sudah dikunci dan tidak dapat diubah lagi.")
 
-    # Update step answer
-    scores = session.ct_pre_score_json or {}
-    if step == "decomposition":
-        session.decomposition_answer_json = answer
-        scores["decomposition"] = 85
-    elif step == "abstraction":
-        session.abstraction_answer_json = answer
-        scores["abstraction"] = 88
-    elif step == "pattern":
-        session.pattern_answer_json = answer
-        scores["pattern_recognition"] = 80
-    elif step == "algorithm":
-        session.algorithm_answer_json = answer
-        scores["algorithm_design"] = 85
+    # Update step answer and persist the real (AI/computed) score sent by the
+    # client. Fall back to a neutral default only when no score was provided,
+    # so the DB stays in sync with what the student sees on the frontend.
+    step_map = {
+        "decomposition": ("decomposition_answer_json", "decomposition", 85),
+        "abstraction": ("abstraction_answer_json", "abstraction", 88),
+        "pattern": ("pattern_answer_json", "pattern_recognition", 80),
+        "algorithm": ("algorithm_answer_json", "algorithm_design", 85),
+    }
+    attr, score_key, default_score = step_map[step]
+    setattr(session, attr, answer)
 
+    scores = session.ct_pre_score_json or {}
+    score_value = payload.score if payload.score is not None else default_score
+    scores[score_key] = max(0, min(100, int(score_value)))
     session.ct_pre_score_json = scores
     session.completed_at = datetime.datetime.now(datetime.timezone.utc)
     if step == "algorithm":

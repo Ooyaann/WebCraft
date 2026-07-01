@@ -162,6 +162,9 @@ class CTSessionSave(BaseModel):
     task_id: str = "easy-1"
     step: str
     answer: str
+    # AI-evaluated (or locally computed) score for this step, 0-100.
+    # When omitted, the backend falls back to a neutral default.
+    score: Optional[int] = None
 
 class ValidateCodeRequest(BaseModel):
     current_html: str

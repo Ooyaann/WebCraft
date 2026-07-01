@@ -238,7 +238,8 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
               session_id: sessionId,
               task_id: 'easy-1',
               step: stepName,
-              answer: answerText
+              answer: answerText,
+              score: result.ct_score_delta
             });
             if (saveRes.data?.session_id) {
               setSessionId(saveRes.data.session_id);
@@ -377,7 +378,8 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
           session_id: sessionId,
           task_id: activeLevelConfig?.id || 'easy-1',
           step: stepName,
-          answer: answerText
+          answer: answerText,
+          score: accumulatedScores[stepName] || localScore
         }).then(saveRes => {
           if (saveRes.data?.session_id) {
             setSessionId(saveRes.data.session_id);
