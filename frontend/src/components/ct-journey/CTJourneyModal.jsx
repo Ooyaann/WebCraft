@@ -65,6 +65,40 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
     algorithm: 0
   });
 
+  const getDefaultSteps = () => {
+    const teacherCt = activeLevelConfig?.ct_journey || {};
+    const teacherSteps = Array.isArray(teacherCt.algorithm_steps) ? teacherCt.algorithm_steps.filter(Boolean) : [];
+    if (teacherSteps.length > 0) {
+      return shuffleArray(teacherSteps);
+    }
+    const title = (activeLevelConfig?.judul || '').toLowerCase();
+    if (title.includes('profil') || title.includes('kartu') || title.includes('easy-1')) {
+      return shuffleArray([
+        'Membuat wadah utama body',
+        'Menambahkan judul utama h1 berisi nama profil',
+        'Menyisipkan paragraf p untuk perkenalan diri',
+        'Menyisipkan gambar foto profil menggunakan img',
+        'Menambahkan style CSS untuk warna latar belakang kartu'
+      ]);
+    } else if (title.includes('musik') || title.includes('galeri') || title.includes('easy-2')) {
+      return shuffleArray([
+        'Membuat wadah utama body',
+        'Menambahkan kotak pembungkus div di dalam body',
+        'Menyisipkan judul sedang h2 tentang musik favorit',
+        'Menyusun daftar lagu-lagu kesukaan',
+        'Menghias tata letak galeri dengan CSS'
+      ]);
+    } else {
+      return shuffleArray([
+        'Membuat wadah utama body',
+        'Menambahkan judul utama halaman',
+        'Menyisipkan konten utama',
+        'Menyusun daftar item pendukung',
+        'Menambahkan style hiasan CSS'
+      ]);
+    }
+  };
+
   // Dynamically initialize chips and steps based on active level title
   React.useEffect(() => {
     if (isOpen) {
@@ -95,7 +129,12 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
           setDecompChips(ctJourneyAnswers.decomposition);
           setSelectedAbstract(ctJourneyAnswers.abstraction || []);
           setChipCategories(ctJourneyAnswers.pattern || {});
-          setSteps(ctJourneyAnswers.algorithm || []);
+          
+          if (ctJourneyAnswers.algorithm && ctJourneyAnswers.algorithm.length > 0) {
+            setSteps(ctJourneyAnswers.algorithm);
+          } else {
+            setSteps(getDefaultSteps());
+          }
           
           if (ctPreScore) {
             setAccumulatedScores({
@@ -106,34 +145,22 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
             });
           }
         } else {
-          const title = (activeLevelConfig?.judul || '').toLowerCase();
-          if (title.includes('profil') || title.includes('kartu') || title.includes('easy-1')) {
-            setDecompChips(['Wadah body', 'Judul Profil', 'Paragraf Perkenalan', 'Foto Diri', 'Desain Kartu']);
-            setSteps(shuffleArray([
-              'Membuat wadah utama body',
-              'Menambahkan judul utama h1 berisi nama profil',
-              'Menyisipkan paragraf p untuk perkenalan diri',
-              'Menyisipkan gambar foto profil menggunakan img',
-              'Menambahkan style CSS untuk warna latar belakang kartu'
-            ]));
-          } else if (title.includes('musik') || title.includes('galeri') || title.includes('easy-2')) {
-            setDecompChips(['Wadah body', 'Kotak pembungkus div', 'Judul Musik H2', 'Daftar Lagu', 'Desain Album']);
-            setSteps(shuffleArray([
-              'Membuat wadah utama body',
-              'Menambahkan kotak pembungkus div di dalam body',
-              'Menyisipkan judul sedang h2 tentang musik favorit',
-              'Menyusun daftar lagu-lagu kesukaan',
-              'Menghias tata letak galeri dengan CSS'
-            ]));
+          const teacherCt = activeLevelConfig?.ct_journey || {};
+          const teacherDecomp = Array.isArray(teacherCt.decomposition_options) ? teacherCt.decomposition_options.filter(Boolean) : [];
+
+          if (teacherDecomp.length > 0) {
+            setDecompChips(teacherDecomp);
+            setSteps(getDefaultSteps());
           } else {
-            setDecompChips(['Wadah body', 'Judul Halaman', 'Teks Konten', 'Daftar Item', 'Style CSS']);
-            setSteps(shuffleArray([
-              'Membuat wadah utama body',
-              'Menambahkan judul utama halaman',
-              'Menyisipkan konten utama',
-              'Menyusun daftar item pendukung',
-              'Menambahkan style hiasan CSS'
-            ]));
+            const title = (activeLevelConfig?.judul || '').toLowerCase();
+            if (title.includes('profil') || title.includes('kartu') || title.includes('easy-1')) {
+              setDecompChips(['Wadah body', 'Judul Profil', 'Paragraf Perkenalan', 'Foto Diri', 'Desain Kartu']);
+            } else if (title.includes('musik') || title.includes('galeri') || title.includes('easy-2')) {
+              setDecompChips(['Wadah body', 'Kotak pembungkus div', 'Judul Musik H2', 'Daftar Lagu', 'Desain Album']);
+            } else {
+              setDecompChips(['Wadah body', 'Judul Halaman', 'Teks Konten', 'Daftar Item', 'Style CSS']);
+            }
+            setSteps(getDefaultSteps());
           }
           setSelectedAbstract([]);
           setChipCategories({});
@@ -330,13 +357,13 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
     if (stepName === 'algorithm') {
       const stepsList = data || [];
       if (stepsList.length === 0) return 60;
-      const firstStep = stepsList[0].toLowerCase();
-      const lastStep = stepsList[stepsList.length - 1].toLowerCase();
+      const firstStep = (stepsList[0] || "").toLowerCase();
+      const lastStep = (stepsList[stepsList.length - 1] || "").toLowerCase();
       const hasBodyFirst = firstStep.includes("body") || firstStep.includes("wadah") || firstStep.includes("utama");
       const hasStyleLast = lastStep.includes("style") || lastStep.includes("css") || lastStep.includes("hiasan") || lastStep.includes("menghias");
 
       if (!hasBodyFirst) return 70;
-      if (!hasStyleLast && stepsList.slice(0, -1).some(s => s.toLowerCase().includes("style") || s.toLowerCase().includes("css"))) return 75;
+      if (!hasStyleLast && stepsList.slice(0, -1).some(s => (s || "").toLowerCase().includes("style") || (s || "").toLowerCase().includes("css"))) return 75;
       return 95;
     }
 
@@ -465,7 +492,7 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
         <div className="w-full bg-[#F8FAFC] border-b-4 border-[#0F172A] p-4 flex justify-between items-center text-xs md:text-sm font-fredoka font-bold overflow-x-auto gap-2 select-none shrink-0">
           {[
             { step: 1, label: '1. Dekomposisi', icon: 'ti-layout-grid-add', activeColor: 'bg-gradient-to-r from-amber-400 to-amber-500 text-[#0F172A]' },
-            { step: 2, label: '2. Abstraksi', icon: 'ti-filter', activeColor: 'bg-gradient-to-r from-blue-500 to-indigo-650 text-white' },
+            { step: 2, label: '2. Abstraksi', icon: 'ti-filter', activeColor: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' },
             { step: 3, label: '3. Pola', icon: 'ti-subtask', activeColor: 'bg-gradient-to-r from-pink-500 to-rose-600 text-white' },
             { step: 4, label: '4. Algoritma', icon: 'ti-list-numbers', activeColor: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white' },
             { step: 5, label: '5. Ringkasan', icon: 'ti-certificate', activeColor: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white' },
@@ -578,12 +605,12 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
                       className={`flex items-center justify-between p-4 border-4 border-[#0F172A] rounded-2xl transition-all select-none ${
                         viewOnly ? 'cursor-default' : 'cursor-pointer hover:bg-slate-50 hover:-translate-y-0.5'
                       } ${isSelected
-                          ? 'bg-gradient-to-r from-blue-500 to-indigo-650 text-white shadow-[4px_4px_0px_#0F172A] scale-[1.01]'
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-[4px_4px_0px_#0F172A] scale-[1.01]'
                           : 'bg-white text-slate-800 shadow-[2px_2px_0px_#0F172A]'
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 border-2 rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white text-indigo-650' : 'bg-slate-50 border-slate-300'}`}>
+                        <div className={`w-5 h-5 border-2 rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white text-indigo-600' : 'bg-slate-50 border-slate-300'}`}>
                           {isSelected && <i className="ti ti-check text-[10px] font-bold" />}
                         </div>
                         <span className="font-fredoka text-xs md:text-sm font-bold">{chip}</span>

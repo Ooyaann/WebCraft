@@ -345,7 +345,7 @@ export default function Workspace() {
               <i className="ti ti-target text-indigo-600 text-base animate-pulse" />
             </div>
             <div className="text-left">
-              <span className="font-fredoka text-[9px] font-black text-indigo-650 uppercase tracking-widest block leading-none">Misi yang harus dikerjakan</span>
+              <span className="font-fredoka text-[9px] font-black text-indigo-600 uppercase tracking-widest block leading-none">Misi yang harus dikerjakan</span>
               <p className="font-nunito text-xs text-slate-800 font-bold leading-relaxed mt-0.5">{activeLevelConfig.misi}</p>
             </div>
           </div>

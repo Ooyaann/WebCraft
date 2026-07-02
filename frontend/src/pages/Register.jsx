@@ -19,6 +19,10 @@ export default function Register() {
     e.preventDefault();
     if (!name || !email || !password || !nisnNip) return;
 
+    if (password.length < 8) {
+      setErrorMsg("Kata sandi harus minimal 8 karakter.");
+      return;
+    }
     if (role === 'siswa' && (!/^\d{10}$/.test(nisnNip))) {
       setErrorMsg("NISN harus tepat 10 digit angka.");
       return;
@@ -47,10 +51,20 @@ export default function Register() {
       }, 2000);
     } catch (err) {
       console.error(err);
-      setErrorMsg(
-        err.response?.data?.detail ||
-        "Pendaftaran gagal. Pastikan email belum terdaftar dan periksa input Anda."
-      );
+      let errorDetail = err.response?.data?.detail;
+      if (Array.isArray(errorDetail)) {
+        const formatMsg = errorDetail.map(errObj => {
+          const field = errObj.loc ? errObj.loc[errObj.loc.length - 1] : '';
+          return `${field ? field + ': ' : ''}${errObj.msg}`;
+        }).join(', ');
+        setErrorMsg(formatMsg);
+      } else {
+        setErrorMsg(
+          errorDetail ||
+          err.message ||
+          "Pendaftaran gagal. Pastikan email belum terdaftar dan periksa input Anda."
+        );
+      }
     } finally {
       setIsLoading(false);
     }

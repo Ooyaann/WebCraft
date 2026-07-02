@@ -68,7 +68,6 @@ async def get_socratic_hint(
         print(f"Gemini API error in Socratic hint: {e}. Falling back to offline simulator.")
         return get_offline_socratic_hint(current_ast, student_message)
 
-# 2. analyze_ct_step - CT Journey Step Evaluator
 async def analyze_ct_step(
     step: str,
     question: str,
@@ -78,19 +77,28 @@ async def analyze_ct_step(
     if not GEMINI_API_KEY:
         return get_offline_ct_step_result(step, student_answer)
 
+    system_instruction = (
+        "Kamu adalah AI Evaluator Computational Thinking (CT) Bahasa Indonesia untuk siswa SMP. "
+        "Tugasmu adalah menganalisis langkah berpikir siswa secara kritis namun memotivasi. "
+        "Berikan umpan balik yang membangun, ramah, dan bebas dari kata-kata yang terlalu rumit. "
+        "Pastikan skor (ct_score_delta) berkisar antara 60-100, mencerminkan pemecahan masalah (Decomposition), "
+        "pemilihan prioritas (Abstraction), pengenalan kesamaan (Pattern Recognition), atau penyusunan langkah logis (Algorithm)."
+    )
+
     prompt = (
-        f"Tantangan: {challenge_context.get('title', '')}\n"
-        f"Deskripsi Misi: {challenge_context.get('description', '')}\n"
-        f"Langkah CT Journey: {step} (decomposition/abstraction/pattern/algorithm)\n"
-        f"Pertanyaan: {question}\n"
+        f"Tantangan Misi: {challenge_context.get('title', '')}\n"
+        f"Instruksi Misi: {challenge_context.get('description', '')}\n"
+        f"Pilar Berpikir Komputasional: {step.upper()}\n"
+        f"Pertanyaan Panduan: {question}\n"
         f"Jawaban Siswa: \"{student_answer}\"\n\n"
-        "Analisis jawaban siswa di atas untuk kecakapan Computational Thinking tingkat SMP. Berikan umpan balik (feedback) singkat dalam Bahasa Indonesia "
-        "yang memotivasi siswa dan estimasi skor (ct_score_delta) antara 60-100 berdasarkan kualitas jawaban.\n"
-        "Kembalikan sebagai objek JSON dengan struktur: {\"feedback\": \"...\", \"ct_score_delta\": 85, \"next_hint\": \"...\"}"
+        "Tolong evaluasi jawaban siswa tersebut. Berikan masukan/feedback yang konstruktif dan memotivasi siswa SMP. "
+        "Gunakan bahasa Indonesia yang santun, bersahabat, dan inspiratif. Berikan juga nilai objektif (ct_score_delta) antara 60-100. "
+        "Kembalikan data secara ketat dalam format JSON berikut:\n"
+        "{\"feedback\": \"[Masukan ramah dan konstruktif]\", \"ct_score_delta\": [angka_skor_integer], \"next_hint\": \"[Petunjuk singkat untuk langkah selanjutnya]\"}"
     )
 
     try:
-        res = await call_gemini(prompt, response_format="json")
+        res = await call_gemini(prompt, system_instruction=system_instruction, response_format="json")
         return json.loads(res)
     except Exception as e:
         print(f"Gemini API error in CT Journey analysis: {e}")

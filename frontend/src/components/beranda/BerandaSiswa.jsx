@@ -69,19 +69,12 @@ export default function BerandaSiswa({ user }) {
           </p>
         </div>
         
-        {/* Role Badge - customized to Siswa only */}
-        <div className="flex items-center gap-3 bg-[#3B82F6] text-white border-2 border-[#0F172A] px-5 py-3 rounded-2xl shadow-[4px_4px_0px_#0F172A] shrink-0 hover:rotate-1 transition-transform">
-          <div className="w-10 h-10 bg-white text-[#3B82F6] rounded-xl flex items-center justify-center border-2 border-[#0F172A] shadow-[2px_2px_0px_#0F172A]">
-            <i className="ti ti-user text-lg animate-pulse" />
+        {/* Role Badge - premium styled box containing only "Siswa" */}
+        <div className="flex items-center gap-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-3 border-[#0F172A] px-4.5 py-2.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] shrink-0 font-fredoka font-bold text-sm select-none hover:-translate-y-0.5 transition-all">
+          <div className="w-8 h-8 bg-white/15 border-2 border-white/25 rounded-xl flex items-center justify-center shadow-inner shrink-0">
+            <i className="ti ti-user text-white text-base animate-pulse" />
           </div>
-          <div className="text-left">
-            <span className="font-nunito text-[10px] font-black text-blue-150 uppercase tracking-widest block leading-none mb-1">
-              Peran Akun
-            </span>
-            <span className="font-fredoka text-base font-bold tracking-tight leading-none block">
-              Siswa
-            </span>
-          </div>
+          <span className="tracking-wide">Siswa</span>
         </div>
       </section>
 

@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 
 from app.database import get_db
 from app.models import Room, Pertemuan, LearningTask, ProjectTask, User
-from app.schemas import PertemuanCreate, PertemuanResponse, PertemuanUpdate, LearningTaskRulesUpdate
+from app.schemas import PertemuanCreate, PertemuanResponse, PertemuanUpdate, LearningTaskRulesUpdate, CTJourneyConfigUpdate
 from app.routers.auth import get_current_user
 
 router = APIRouter(tags=["pertemuan"])
@@ -237,7 +237,8 @@ async def get_task_details(
             "pertemuan_id": lt.pertemuan_id,
             "misi": misi,
             "validator_rules_json": lt.validator_rules_json,
-            "max_attempts_before_ai_hint": lt.max_attempts_before_ai_hint
+            "max_attempts_before_ai_hint": lt.max_attempts_before_ai_hint,
+            "ct_journey_json": lt.ct_journey_json
         }
 
     # Try finding in ProjectTask
@@ -296,6 +297,7 @@ async def get_learning_task_for_pertemuan(
         "judul": lt.judul,
         "validator_rules_json": lt.validator_rules_json or [],
         "max_attempts_before_ai_hint": lt.max_attempts_before_ai_hint,
+        "ct_journey_json": lt.ct_journey_json or {"decomposition_options": [], "algorithm_steps": []},
     }
 
 
@@ -311,4 +313,23 @@ async def update_learning_task_rules(
     lt.validator_rules_json = [rule.model_dump(exclude_none=True) for rule in payload.rules]
     await db.flush()
     return {"id": lt.id, "validator_rules_json": lt.validator_rules_json}
+
+
+# Router PUT: Set teacher-defined CT Journey content for a learning task (Guru)
+@router.put("/pertemuan/learning-tasks/{task_id}/ct-journey")
+async def update_learning_task_ct_journey(
+    task_id: str,
+    payload: CTJourneyConfigUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    lt = await _get_owned_learning_task(task_id, current_user, db, by="task")
+    decomposition = [s.strip() for s in payload.decomposition_options if s and s.strip()]
+    steps = [s.strip() for s in payload.algorithm_steps if s and s.strip()]
+    lt.ct_journey_json = {
+        "decomposition_options": decomposition,
+        "algorithm_steps": steps,
+    }
+    await db.flush()
+    return {"id": lt.id, "ct_journey_json": lt.ct_journey_json}
 

@@ -42,7 +42,8 @@ export default function TugasDetail() {
             type: isLearning ? 'learning' : 'project',
             pertemuan_id: tugasId,
             misi: challenge,
-            validator_rules: primary.validator_rules_json || []
+            validator_rules: primary.validator_rules_json || [],
+            ct_journey: primary.ct_journey_json || null
           });
         }
       })

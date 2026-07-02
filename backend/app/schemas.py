@@ -100,6 +100,11 @@ class ValidatorRule(BaseModel):
 class LearningTaskRulesUpdate(BaseModel):
     rules: List[ValidatorRule]
 
+class CTJourneyConfigUpdate(BaseModel):
+    # Teacher-defined CT Journey content for a learning task.
+    decomposition_options: List[str] = Field(default_factory=list)
+    algorithm_steps: List[str] = Field(default_factory=list)
+
 class PertemuanUpdate(BaseModel):
     judul: Optional[str] = Field(default=None, min_length=1, max_length=200)
     urutan: Optional[int] = None

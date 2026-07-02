@@ -70,8 +70,8 @@ export default function Login() {
     } catch (err) {
       console.error(err);
       setErrorMsg(
-        err.message ||
         err.response?.data?.detail ||
+        err.message ||
         "Gagal masuk. Periksa kembali alamat email dan kata sandi Anda."
       );
     } finally {
@@ -231,7 +231,7 @@ export default function Login() {
                     disabled={isLoading}
                     required
                   />
-                  <span className={`absolute left-3.5 top-3.5 text-slate-400 z-10 pointer-events-none transition-all peer-focus:translate-x-[-1px] peer-focus:translate-y-[-1px] ${role === 'siswa' ? 'peer-focus:text-blue-650' : 'peer-focus:text-pink-650'}`}>
+                  <span className={`absolute left-3.5 top-3.5 text-slate-400 z-10 pointer-events-none transition-all peer-focus:translate-x-[-1px] peer-focus:translate-y-[-1px] ${role === 'siswa' ? 'peer-focus:text-blue-600' : 'peer-focus:text-pink-600'}`}>
                     <i className="ti ti-mail text-lg" />
                   </span>
                 </div>
@@ -249,7 +249,7 @@ export default function Login() {
                     disabled={isLoading}
                     required
                   />
-                  <span className={`absolute left-3.5 top-3.5 text-slate-400 z-10 pointer-events-none transition-all peer-focus:translate-x-[-1px] peer-focus:translate-y-[-1px] ${role === 'siswa' ? 'peer-focus:text-blue-650' : 'peer-focus:text-pink-650'}`}>
+                  <span className={`absolute left-3.5 top-3.5 text-slate-400 z-10 pointer-events-none transition-all peer-focus:translate-x-[-1px] peer-focus:translate-y-[-1px] ${role === 'siswa' ? 'peer-focus:text-blue-600' : 'peer-focus:text-pink-600'}`}>
                     <i className="ti ti-lock text-lg" />
                   </span>
                 </div>

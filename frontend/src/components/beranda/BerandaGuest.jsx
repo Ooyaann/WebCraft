@@ -187,7 +187,7 @@ export default function BerandaGuest() {
             <div className={`p-4 transition-colors duration-500 min-h-[220px] flex flex-col justify-between ${slides[activeSlide].bgClass}`}>
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div 
+                  <div
                     className="w-7 h-7 rounded-lg border-2 border-[#0F172A] flex items-center justify-center text-white text-sm"
                     style={{ backgroundColor: slides[activeSlide].color }}
                   >
@@ -212,9 +212,8 @@ export default function BerandaGuest() {
                 <button
                   key={idx}
                   onClick={() => setActiveSlide(idx)}
-                  className={`w-2.5 h-2.5 rounded-full border border-[#0F172A] transition-all cursor-pointer ${
-                    activeSlide === idx ? 'bg-indigo-600 scale-110' : 'bg-white'
-                  }`}
+                  className={`w-2.5 h-2.5 rounded-full border border-[#0F172A] transition-all cursor-pointer ${activeSlide === idx ? 'bg-indigo-600 scale-110' : 'bg-white'
+                    }`}
                 />
               ))}
             </div>
@@ -262,7 +261,7 @@ export default function BerandaGuest() {
             {
               icon: 'ti-code',
               title: 'Koreksi Kode Otomatis',
-              desc: 'Memeriksa secara real-time dan memberikan umpan balik langsung terhadap struktur HTML & CSS yang kamu buat.',
+              desc: 'Memeriksa secara real-time dan memberikan umpan balik secara instan terhadap struktur HTML & CSS yang kamu buat.',
               color: '#FACC15',
               bgClass: 'bg-[#6366F1]', // Solid Vibrant Indigo
               textColor: 'text-white',

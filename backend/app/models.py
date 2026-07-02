@@ -92,6 +92,9 @@ class LearningTask(Base):
     # Validator Rules JSON: [{type, selector, parent, child, value, min, max, error_message}]
     validator_rules_json = Column(JSON, nullable=False)
     max_attempts_before_ai_hint = Column(Integer, default=4)
+    # Teacher-defined CT Journey content: {decomposition_options: [str], algorithm_steps: [str]}.
+    # When null/empty the frontend falls back to auto-generating from the title.
+    ct_journey_json = Column(JSON, nullable=True)
 
     # Relationships
     pertemuan = relationship("Pertemuan", back_populates="learning_tasks")

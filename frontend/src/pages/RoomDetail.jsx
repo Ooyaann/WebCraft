@@ -23,6 +23,9 @@ export default function RoomDetail() {
   const [rulesList, setRulesList] = useState([]);
   const [rulesLoading, setRulesLoading] = useState(false);
   const [rulesSaving, setRulesSaving] = useState(false);
+  const [rulesTab, setRulesTab] = useState('rules'); // 'rules' | 'ct'
+  const [ctDecomp, setCtDecomp] = useState([]);
+  const [ctSteps, setCtSteps] = useState([]);
 
   // Form states
   const [announcementText, setAnnouncementText] = useState('');
@@ -57,11 +60,17 @@ export default function RoomDetail() {
     setRulesPertJudul(pert.judul);
     setRulesTaskId(null);
     setRulesList([]);
+    setRulesTab('rules');
+    setCtDecomp([]);
+    setCtSteps([]);
     setRulesLoading(true);
     try {
       const res = await api.get(`/pertemuan/${pert.id}/learning-task`);
       setRulesTaskId(res.data.id);
       setRulesList(res.data.validator_rules_json || []);
+      const ct = res.data.ct_journey_json || {};
+      setCtDecomp(Array.isArray(ct.decomposition_options) ? ct.decomposition_options : []);
+      setCtSteps(Array.isArray(ct.algorithm_steps) ? ct.algorithm_steps : []);
     } catch (err) {
       console.error('Gagal memuat aturan validasi:', err);
       alert('Gagal memuat aturan validasi tugas ini.');
@@ -83,6 +92,21 @@ export default function RoomDetail() {
     setRulesList(prev => prev.filter((_, i) => i !== index));
   };
 
+  // CT Journey content editors (decomposition options + algorithm steps)
+  const addCtDecomp = () => setCtDecomp(prev => [...prev, '']);
+  const removeCtDecomp = (i) => setCtDecomp(prev => prev.filter((_, idx) => idx !== i));
+  const updateCtDecomp = (i, v) => setCtDecomp(prev => prev.map((x, idx) => (idx === i ? v : x)));
+  const addCtStep = () => setCtSteps(prev => [...prev, '']);
+  const removeCtStep = (i) => setCtSteps(prev => prev.filter((_, idx) => idx !== i));
+  const updateCtStep = (i, v) => setCtSteps(prev => prev.map((x, idx) => (idx === i ? v : x)));
+  const moveCtStep = (i, dir) => setCtSteps(prev => {
+    const j = i + dir;
+    if (j < 0 || j >= prev.length) return prev;
+    const next = [...prev];
+    [next[i], next[j]] = [next[j], next[i]];
+    return next;
+  });
+
   const handleSaveRules = async () => {
     // Keep only the fields relevant to each rule type.
     const cleaned = rulesList.map(r => {
@@ -99,6 +123,10 @@ export default function RoomDetail() {
     setRulesSaving(true);
     try {
       await api.put(`/pertemuan/learning-tasks/${rulesTaskId}/rules`, { rules: cleaned });
+      await api.put(`/pertemuan/learning-tasks/${rulesTaskId}/ct-journey`, {
+        decomposition_options: ctDecomp.map(s => (s || '').trim()).filter(Boolean),
+        algorithm_steps: ctSteps.map(s => (s || '').trim()).filter(Boolean),
+      });
       setShowRulesModal(false);
     } catch (err) {
       console.error('Gagal menyimpan aturan:', err);
@@ -366,7 +394,7 @@ export default function RoomDetail() {
       <section className="neo-card p-6 md:p-8 border-4 border-[#0F172A] shadow-[6px_6px_0px_#0F172A] rounded-[24px] bg-white flex flex-col gap-4 text-left">
         <div className="border-b-2 border-dashed border-slate-350 pb-2 flex justify-between items-center gap-4">
           <h3 className="font-fredoka text-lg font-bold text-[#0F172A] flex items-center gap-1.5">
-            <i className="ti ti-clipboard-list text-blue-650 animate-pulse" />
+            <i className="ti ti-clipboard-list text-blue-600 animate-pulse" />
             Alur Pembelajaran Kelas
           </h3>
           
@@ -407,53 +435,47 @@ export default function RoomDetail() {
               // Teachers see everything unlocked, students follow chronological unlock
               const isUnlocked = isTeacher || isFirst || isPrevCompleted || isCompleted;
 
-              // Color based on status
-              let cardHexBg = "#FFFFFF";
+              // Colors & styles based on status
               let cardBg = "bg-white";
               let cardText = "text-[#0F172A]";
               let subText = "text-slate-500";
-              let descText = "text-slate-650";
-              let borderClass = "border-[#0F172A]";
+              let descText = "text-slate-655";
+              let borderClass = "border-[#0F172A] border-l-8";
+              let statusBadgeClass = "";
+              let bulletBgClass = "";
 
               if (isCompleted) {
-                cardHexBg = "#10B981";
-                cardBg = "bg-[#10B981]"; // Solid Vibrant Emerald/Green
-                cardText = "text-white";
-                subText = "text-emerald-100";
-                descText = "text-emerald-50";
+                borderClass += " border-l-emerald-500";
+                statusBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-250";
+                bulletBgClass = "bg-emerald-500 text-white";
+                subText = "text-emerald-700";
+                descText = "text-slate-600";
               } else if (!pert.is_published) {
-                cardHexBg = "#F1F5F9";
-                cardBg = "bg-slate-100";
-                cardText = "text-slate-400";
-                subText = "text-slate-400";
-                descText = "text-slate-400";
+                borderClass += " border-l-purple-500";
+                statusBadgeClass = "bg-purple-50 text-purple-700 border-purple-250";
+                bulletBgClass = "bg-purple-500 text-white";
+                subText = "text-purple-700";
+                descText = "text-slate-500";
               } else if (isUnlocked) {
-                cardHexBg = "#FACC15";
-                cardBg = "bg-[#FACC15]"; // Solid Vibrant Yellow
-                cardText = "text-[#0F172A]";
-                subText = "text-slate-700";
-                descText = "text-slate-800";
+                borderClass += " border-l-blue-500";
+                statusBadgeClass = "bg-blue-50 text-blue-700 border-blue-250";
+                bulletBgClass = "bg-blue-500 text-white";
+                subText = "text-blue-700";
+                descText = "text-slate-650";
               } else {
-                cardHexBg = "#F1F5F9";
-                cardBg = "bg-slate-100";
+                cardBg = "bg-slate-50/80";
+                borderClass = "border-slate-300 border-l-8 border-l-slate-400";
+                statusBadgeClass = "bg-slate-200 text-slate-500 border-slate-300";
+                bulletBgClass = "bg-slate-300 text-slate-500";
                 cardText = "text-slate-400";
                 subText = "text-slate-400";
                 descText = "text-slate-400";
-                borderClass = "border-slate-350";
               }
 
               return (
                 <div key={pert.id} className="relative">
                   {/* Bullet timeline circle */}
-                  <span className={`absolute -left-[30px] top-4.5 w-6 h-6 rounded-full border-2 border-[#0F172A] flex items-center justify-center text-[10px] font-black z-10 shadow-sm ${
-                    isCompleted
-                      ? 'bg-emerald-400 text-white'
-                      : !pert.is_published
-                      ? 'bg-slate-400 text-white'
-                      : isUnlocked
-                      ? 'bg-yellow-400 text-[#0F172A]'
-                      : 'bg-slate-200 text-slate-400'
-                  }`}>
+                  <span className={`absolute -left-[30px] top-4.5 w-6 h-6 rounded-full border-2 border-[#0F172A] flex items-center justify-center text-[10px] font-black z-10 shadow-sm ${bulletBgClass}`}>
                     {isCompleted ? (
                       <i className="ti ti-check text-[10px] font-bold" />
                     ) : (
@@ -462,11 +484,10 @@ export default function RoomDetail() {
                   </span>
 
                   <div 
-                    style={{ background: cardHexBg }}
-                    className={`neo-card p-4.5 border-4 ${borderClass} shadow-[4px_4px_0px_#0F172A] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all ${
+                    className={`neo-card p-4.5 ${cardBg} ${borderClass} shadow-[4px_4px_0px_#0F172A] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all ${
                       isUnlocked 
                         ? 'hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#0F172A] cursor-pointer' 
-                        : 'opacity-60 cursor-not-allowed shadow-[2px_2px_0px_#0F172A]'
+                        : 'opacity-65 cursor-not-allowed shadow-[2px_2px_0px_#0F172A]'
                     }`}
                     onClick={() => {
                       if (isTeacher) {
@@ -480,15 +501,7 @@ export default function RoomDetail() {
                   >
                     <div className="text-left flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-fredoka font-bold border ${
-                          isCompleted
-                            ? 'bg-white text-[#10B981] border-white'
-                            : !pert.is_published
-                            ? 'bg-slate-250 text-slate-650 border-slate-350'
-                            : isUnlocked
-                            ? 'bg-[#0F172A] text-white border-[#0F172A]'
-                            : 'bg-slate-100 text-slate-400 border-slate-200'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-fredoka font-bold border ${statusBadgeClass}`}>
                           {isCompleted 
                             ? 'Selesai' 
                             : !pert.is_published 
@@ -505,10 +518,10 @@ export default function RoomDetail() {
                         {pert.materi_list_json && pert.materi_list_json.length > 0 && (
                           <span className={`border px-2 py-0.5 rounded-lg text-[9px] font-bold flex items-center gap-1 ${
                             isCompleted
-                              ? 'bg-white text-emerald-800 border-white'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-250'
                               : isUnlocked
-                              ? 'bg-[#0F172A] text-[#FACC15] border-[#0F172A]'
-                              : 'bg-blue-100 text-blue-700 border-blue-200'
+                              ? 'bg-blue-50 text-blue-800 border-blue-250'
+                              : 'bg-slate-150 text-slate-500 border-slate-200'
                           }`}>
                             <i className="ti ti-file-text" />
                             {pert.materi_list_json.length} Materi
@@ -585,9 +598,9 @@ export default function RoomDetail() {
 
       {/* Classroom Announcement Modal */}
       {showAnnouncementModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border-4 border-[#0F172A] rounded-2xl shadow-[8px_8px_0px_#0F172A] overflow-hidden">
-            <div className="bg-[#FACC15] text-[#0F172A] px-6 py-4 flex justify-between items-center border-b-4 border-[#0F172A]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 pt-10 md:pt-16 pb-12">
+          <div className="w-full max-w-md bg-white border-4 border-[#0F172A] rounded-[24px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative">
+            <div className="bg-[#FACC15] text-[#0F172A] px-6 py-4 flex justify-between items-center border-b-4 border-[#0F172A] rounded-t-[20px]">
               <h3 className="font-fredoka text-base font-bold flex items-center gap-1.5">
                 <i className="ti ti-speakerphone text-lg" />
                 Kelola Pengumuman Kelas
@@ -600,15 +613,15 @@ export default function RoomDetail() {
               </button>
             </div>
             
-            <form onSubmit={handleSaveAnnouncement} className="p-6 flex flex-col gap-4 text-left">
+            <form onSubmit={handleSaveAnnouncement} className="p-6 flex flex-col gap-5 text-left">
               <div>
-                <label className="font-fredoka font-bold text-slate-700 text-xs mb-1.5 block">Teks Pengumuman Kelas:</label>
+                <label className="font-fredoka font-bold text-slate-700 text-xs mb-2 block">Teks Pengumuman Kelas:</label>
                 <textarea
                   rows={4}
                   value={announcementText}
                   onChange={(e) => setAnnouncementText(e.target.value)}
                   placeholder="Tulis pengumuman baru yang akan langsung muncul di halaman timeline kelas siswa... (Kosongkan untuk menghapus pengumuman)"
-                  className="w-full neo-input text-xs font-semibold"
+                  className="w-full border-2 border-[#0F172A] rounded-xl px-3 py-2 text-xs font-nunito font-semibold focus:outline-none focus:bg-amber-50 shadow-[1.5px_1.5px_0px_#0F172A] disabled:opacity-50"
                   disabled={isActionLoading}
                 />
               </div>
@@ -617,7 +630,7 @@ export default function RoomDetail() {
                 <button
                   type="button"
                   onClick={() => setShowAnnouncementModal(false)}
-                  className="px-4 py-2 border-2 border-[#0F172A] bg-white text-slate-700 font-nunito font-bold rounded-xl hover:-translate-y-0.5 cursor-pointer text-xs"
+                  className="px-5 py-2.5 border-4 border-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] text-slate-700 font-fredoka font-bold rounded-xl text-xs shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
                   disabled={isActionLoading}
                 >
                   Batal
@@ -625,9 +638,9 @@ export default function RoomDetail() {
                 <button
                   type="submit"
                   disabled={isActionLoading}
-                  className="px-4 py-2 bg-blue-600 text-white border-2 border-[#0F172A] shadow-[2px_2px_0px_#0F172A] font-fredoka font-bold rounded-xl hover:-translate-y-0.5 cursor-pointer text-xs"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-fredoka font-bold rounded-xl text-xs hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
                 >
-                  {isActionLoading ? 'Menyimpan...' : 'Simpan Pengumuman'}
+                  {isActionLoading ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </form>
@@ -637,9 +650,9 @@ export default function RoomDetail() {
 
       {/* Add / Edit Meeting Modals */}
       {(showAddModal || showEditModal) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-white border-4 border-[#0F172A] rounded-2xl shadow-[8px_8px_0px_#0F172A] overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center border-b-4 border-[#0F172A] shrink-0">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 md:p-6 pt-10 md:pt-16 pb-12">
+          <div className="w-full max-w-2xl bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative overflow-hidden max-h-[85vh]">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white px-6 py-4.5 flex justify-between items-center border-b-4 border-[#0F172A] shrink-0 rounded-t-[24px]">
               <h3 className="font-fredoka text-base font-bold flex items-center gap-1.5">
                 <i className="ti ti-edit-circle text-lg" />
                 {showAddModal ? 'Tambah Pertemuan Pembelajaran' : 'Edit Parameter Pertemuan'}
@@ -938,7 +951,7 @@ export default function RoomDetail() {
                       type="checkbox"
                       checked={isPublished}
                       onChange={(e) => setIsPublished(e.target.checked)}
-                      className="w-4 h-4 accent-indigo-650"
+                      className="w-4 h-4 accent-indigo-600"
                     />
                     Terbitkan materi ini ke siswa
                   </label>
@@ -951,7 +964,7 @@ export default function RoomDetail() {
                       setShowAddModal(false);
                       setShowEditModal(false);
                     }}
-                    className="px-4 py-2 border-2 border-[#0F172A] bg-white text-slate-700 font-nunito font-bold rounded-xl hover:-translate-y-0.5 cursor-pointer text-xs"
+                    className="px-5 py-2.5 border-4 border-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] text-slate-700 font-fredoka font-bold rounded-xl text-xs shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
                     disabled={isActionLoading}
                   >
                     Batal
@@ -959,17 +972,17 @@ export default function RoomDetail() {
                   <button
                     type="submit"
                     disabled={isActionLoading}
-                    className="px-5 py-2.5 bg-blue-600 text-white border-2 border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A] font-fredoka text-xs font-bold rounded-xl hover:-translate-y-0.5 cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-fredoka font-bold rounded-xl text-xs hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     {isActionLoading ? (
                       <>
-                        <i className="ti ti-loader animate-spin" />
-                        Menyimpan...
+                        <i className="ti ti-loader animate-spin text-sm" />
+                        <span>Menyimpan...</span>
                       </>
                     ) : (
                       <>
                         <i className="ti ti-circle-check" />
-                        Simpan Pertemuan
+                        <span>Simpan Pertemuan</span>
                       </>
                     )}
                   </button>
@@ -982,19 +995,66 @@ export default function RoomDetail() {
 
       {/* Validator Rules Editor Modal (Teacher) */}
       {showRulesModal && (
-        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4" onClick={() => !rulesSaving && setShowRulesModal(false)}>
-          <div className="bg-white border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b-4 border-[#0F172A] bg-sky-50 rounded-t-xl">
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-start overflow-y-auto p-4 md:p-6 pt-10 md:pt-16 pb-12" onClick={() => !rulesSaving && setShowRulesModal(false)}>
+          <div className="bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] w-full max-w-2xl max-h-[85vh] flex flex-col my-auto relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4.5 border-b-4 border-[#0F172A] bg-sky-50 rounded-t-[24px]">
               <div className="text-left">
-                <h3 className="font-fredoka text-base font-bold text-[#0F172A] flex items-center gap-2"><i className="ti ti-list-check text-sky-600" /> Aturan Validasi Misi</h3>
+                <h3 className="font-fredoka text-base font-bold text-[#0F172A] flex items-center gap-2"><i className="ti ti-settings text-sky-600 text-lg animate-spin-slow" /> Pengaturan Misi</h3>
                 <p className="text-[11px] text-slate-500 font-bold mt-0.5">{rulesPertJudul}</p>
               </div>
-              <button onClick={() => setShowRulesModal(false)} className="p-1.5 hover:bg-slate-200 rounded-lg cursor-pointer"><i className="ti ti-x" /></button>
+              <button onClick={() => setShowRulesModal(false)} className="p-1.5 hover:bg-slate-200 rounded-lg cursor-pointer"><i className="ti ti-x text-lg font-bold" /></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            {/* Tabs */}
+            <div className="flex gap-1 px-5 pt-3">
+              {[['rules', 'Aturan Validasi', 'ti-list-check'], ['ct', 'Konten CT Journey', 'ti-brain']].map(([key, label, icon]) => (
+                <button
+                  key={key}
+                  onClick={() => setRulesTab(key)}
+                  className={`px-3 py-2 font-fredoka text-[11px] font-bold flex items-center gap-1.5 border-b-2 cursor-pointer transition-colors ${rulesTab === key ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                  <i className={`ti ${icon}`} /> {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 border-t-2 border-slate-100">
               {rulesLoading ? (
-                <div className="text-center py-8 text-slate-500 font-bold text-sm">Memuat aturan...</div>
+                <div className="text-center py-8 text-slate-500 font-bold text-sm">Memuat...</div>
+              ) : rulesTab === 'ct' ? (
+                <>
+                  <div>
+                    <p className="font-fredoka text-xs font-bold text-slate-700 mb-0.5 flex items-center gap-1.5"><i className="ti ti-layout-grid-add text-amber-600" /> Pilihan Dekomposisi</p>
+                    <p className="font-nunito text-[10px] text-slate-400 font-bold mb-2">Bagian web yang dianalisis siswa. Kosongkan = pakai bawaan otomatis.</p>
+                    <div className="space-y-1.5">
+                      {ctDecomp.map((item, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input value={item} onChange={(e) => updateCtDecomp(i, e.target.value)} placeholder="mis. Wadah body" className="flex-1 border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs" />
+                          <button onClick={() => removeCtDecomp(i)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"><i className="ti ti-trash text-sm" /></button>
+                        </div>
+                      ))}
+                      <button onClick={addCtDecomp} className="w-full border-2 border-dashed border-slate-300 rounded-xl py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-50 cursor-pointer flex items-center justify-center gap-1"><i className="ti ti-plus" /> Tambah Bagian</button>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <p className="font-fredoka text-xs font-bold text-slate-700 mb-0.5 flex items-center gap-1.5"><i className="ti ti-list-numbers text-orange-600" /> Langkah Algoritma (urutan benar)</p>
+                    <p className="font-nunito text-[10px] text-slate-400 font-bold mb-2">Siswa akan mengacak lalu menyusun ulang. Kosongkan = pakai bawaan.</p>
+                    <div className="space-y-1.5">
+                      {ctSteps.map((item, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="font-fredoka text-[10px] font-bold text-slate-500 w-5 text-center shrink-0">{i + 1}</span>
+                          <input value={item} onChange={(e) => updateCtStep(i, e.target.value)} placeholder="mis. Membuat wadah body" className="flex-1 border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs" />
+                          <div className="flex gap-0.5 shrink-0">
+                            <button onClick={() => moveCtStep(i, -1)} disabled={i === 0} className="p-1 text-slate-500 hover:bg-slate-100 rounded disabled:opacity-30 cursor-pointer"><i className="ti ti-arrow-up text-sm" /></button>
+                            <button onClick={() => moveCtStep(i, 1)} disabled={i === ctSteps.length - 1} className="p-1 text-slate-500 hover:bg-slate-100 rounded disabled:opacity-30 cursor-pointer"><i className="ti ti-arrow-down text-sm" /></button>
+                          </div>
+                          <button onClick={() => removeCtStep(i)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"><i className="ti ti-trash text-sm" /></button>
+                        </div>
+                      ))}
+                      <button onClick={addCtStep} className="w-full border-2 border-dashed border-slate-300 rounded-xl py-1.5 text-[11px] font-bold text-slate-500 hover:bg-slate-50 cursor-pointer flex items-center justify-center gap-1"><i className="ti ti-plus" /> Tambah Langkah</button>
+                    </div>
+                  </div>
+                </>
               ) : rulesList.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 font-bold text-sm">Belum ada aturan. Tambahkan aturan pertama.</div>
               ) : (
@@ -1020,15 +1080,37 @@ export default function RoomDetail() {
                   </div>
                 ))
               )}
-              {!rulesLoading && (
+              {!rulesLoading && rulesTab === 'rules' && (
                 <button onClick={addRule} className="w-full border-2 border-dashed border-slate-300 rounded-xl py-2 text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer flex items-center justify-center gap-1"><i className="ti ti-plus" /> Tambah Aturan</button>
               )}
             </div>
 
-            <div className="flex justify-end gap-3 px-5 py-4 border-t-4 border-[#0F172A]">
-              <button onClick={() => setShowRulesModal(false)} disabled={rulesSaving} className="px-4 py-2 border-2 border-[#0F172A] bg-white text-slate-700 font-bold rounded-xl text-xs cursor-pointer">Batal</button>
-              <button onClick={handleSaveRules} disabled={rulesSaving || rulesLoading} className="px-5 py-2.5 bg-blue-600 text-white border-2 border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A] font-fredoka text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5">
-                {rulesSaving ? (<><i className="ti ti-loader animate-spin" /> Menyimpan...</>) : (<><i className="ti ti-circle-check" /> Simpan Aturan</>)}
+            <div className="flex justify-end gap-3 px-6 py-4.5 border-t-4 border-[#0F172A] bg-white rounded-b-[24px]">
+              <button
+                onClick={() => setShowRulesModal(false)}
+                disabled={rulesSaving}
+                className="px-5 py-2.5 border-4 border-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] text-slate-700 font-fredoka font-bold rounded-xl text-xs md:text-sm shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveRules}
+                disabled={rulesSaving || rulesLoading}
+                className={`px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-fredoka font-bold rounded-xl text-xs md:text-sm hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer flex items-center gap-1.5 ${
+                  (rulesSaving || rulesLoading) ? 'opacity-50 cursor-not-allowed shadow-none transform-none active:translate-y-0' : ''
+                }`}
+              >
+                {rulesSaving ? (
+                  <>
+                    <i className="ti ti-loader animate-spin text-sm" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="ti ti-circle-check" />
+                    <span>Simpan Pengaturan</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

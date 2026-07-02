@@ -48,6 +48,21 @@ const isAuthEndpoint = (url = '') =>
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Normalize FastAPI 422 validation array errors to a clean string
+    if (error.response?.data?.detail && Array.isArray(error.response.data.detail)) {
+      const formattedErrors = error.response.data.detail.map(d => {
+        const fieldName = d.loc && d.loc.length > 0 ? d.loc[d.loc.length - 1] : '';
+        let message = d.msg;
+        if (fieldName === 'password' && d.type === 'string_too_short') {
+          message = 'minimal 8 karakter';
+        } else if (fieldName === 'email' && d.type === 'value_error') {
+          message = 'format email tidak valid';
+        }
+        return fieldName ? `${fieldName}: ${message}` : message;
+      });
+      error.response.data.detail = formattedErrors.join(', ');
+    }
+
     const original = error.config;
     const status = error.response?.status;
 
