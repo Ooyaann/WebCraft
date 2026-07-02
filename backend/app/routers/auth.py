@@ -45,6 +45,7 @@ async def create_refresh_token(user_id: str, db: AsyncSession) -> str:
         token_hash=_hash_token(raw_token),
         expires_at=expires_at.replace(tzinfo=None),
         revoked=False,
+        created_at=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     ))
     await db.flush()
     return raw_token
