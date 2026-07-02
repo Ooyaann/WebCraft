@@ -43,7 +43,7 @@ async def create_refresh_token(user_id: str, db: AsyncSession) -> str:
         id=str(uuid.uuid4()),
         user_id=user_id,
         token_hash=_hash_token(raw_token),
-        expires_at=expires_at,
+        expires_at=expires_at.replace(tzinfo=None),
         revoked=False,
     ))
     await db.flush()
@@ -129,7 +129,8 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         email=user_in.email,
         password_hash=get_password_hash(user_in.password),
         role=user_in.role,
-        nisn_nip=user_in.nisn_nip
+        nisn_nip=user_in.nisn_nip,
+        created_at=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     )
     db.add(db_user)
     await db.flush() # Sync ID
