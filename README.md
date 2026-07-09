@@ -40,7 +40,7 @@ Frontend:
 ```bash
 cd frontend
 npm install
-npm run dev            # Vite proxy /api -> http://localhost:8000
+npm run dev            # Vite dev server di port 5173, proxy /api -> http://localhost:8000
 ```
 
 Akun demo: guru `budi@guru.com` / `guru123`, siswa `andi@siswa.com` / `siswa123`.

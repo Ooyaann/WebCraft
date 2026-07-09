@@ -10,7 +10,6 @@ export default defineConfig({
     environment: 'node',
   },
   server: {
-    allowedHosts: ['tripod-animate-italicize.ngrok-free.dev', 'tripod-animate-italicize.ngrok-free.app'],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

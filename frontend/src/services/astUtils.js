@@ -1,4 +1,8 @@
-export const CONTAINER_TAGS = ['body', 'div', 'ul'];
+export const CONTAINER_TAGS = [
+  'body', 'div', 'ul', 'ol', 'nav', 'header', 'footer', 'section',
+  'article', 'main', 'aside', 'form', 'table', 'tr', 'thead', 'tbody',
+  'a', 'span', 'button', 'li'
+];
 
 // Helper to escape HTML characters
 export const escapeHTML = (text) => {
@@ -35,7 +39,12 @@ const sanitizeStyleContent = (css) => String(css ?? '').replace(/<\/(style|scrip
 
 // Tags a leaf node is allowed to emit. Anything else is rendered as escaped
 // text, never as a tag — so a tampered AST (e.g. type "script") can't inject.
-const KNOWN_LEAF_TAGS = ['h1', 'p', 'li', 'button'];
+const KNOWN_LEAF_TAGS = [
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'p', 'li', 'button', 'span', 'a',
+  'label', 'th', 'td', 'caption',
+  'strong', 'em', 'b', 'i', 'mark', 'small',
+];
 
 // Serialize AST to raw HTML string (for sandboxed iframe preview)
 export const toHTML = (nodes) => {
@@ -48,16 +57,26 @@ export const toHTML = (nodes) => {
     if (node.type === 'img') {
       return `<img src="${escapeAttr(sanitizeUrl(node.content || ''))}" alt="WebCraft Image" style="max-width:100%; border:3px solid #0F172A; box-shadow:3px 3px 0px #0F172A; border-radius:8px;" />`;
     }
+    if (node.type === 'input') {
+      return `<input type="text" placeholder="${escapeAttr(node.content || '')}" style="padding:4px 8px; border:2px solid #0F172A; border-radius:6px;" />`;
+    }
+    if (node.type === 'textarea') {
+      return `<textarea style="padding:4px 8px; border:2px solid #0F172A; border-radius:6px; width:100%;" rows="3">${escapeHTML(node.content || '')}</textarea>`;
+    }
     if (CONTAINER_TAGS.includes(node.type)) {
       const inner = toHTML(node.children || []);
+      // Container tags that also carry text content render it before children
+      const textContent = node.content ? escapeHTML(node.content) : '';
+      if (node.type === 'a') {
+        return `<a href="#" style="color:#3B82F6; text-decoration:underline;">${textContent}${inner}</a>`;
+      }
+      if (node.type === 'button') {
+        return `<button style="background-color:#FACC15; color:#0F172A; border:3px solid #0F172A; box-shadow:2px 2px 0px #0F172A; font-weight:bold; padding:4px 12px; border-radius:6px; cursor:pointer;">${textContent}${inner}</button>`;
+      }
       return `<${node.type}>${inner}</${node.type}>`;
     }
     if (KNOWN_LEAF_TAGS.includes(node.type)) {
-      let classes = '';
-      if (node.type === 'button') {
-        classes = ' style="background-color:#FACC15; color:#0F172A; border:3px solid #0F172A; box-shadow:2px 2px 0px #0F172A; font-weight:bold; padding:4px 12px; border-radius:6px; cursor:pointer;"';
-      }
-      return `<${node.type}${classes}>${escapeHTML(node.content || '')}</${node.type}>`;
+      return `<${node.type}>${escapeHTML(node.content || '')}</${node.type}>`;
     }
     // Unknown / untrusted node type: render text content escaped, never a tag.
     return escapeHTML(node.content || '');
@@ -76,6 +95,12 @@ export const toFormattedCode = (nodes, depth = 0) => {
     if (node.type === 'img') {
       return `${indent}<img src="${node.content || ''}" alt="Image" />`;
     }
+    if (node.type === 'input') {
+      return `${indent}<input type="text" placeholder="${node.content || ''}" />`;
+    }
+    if (node.type === 'textarea') {
+      return `${indent}<textarea>${escapeHTML(node.content || '')}</textarea>`;
+    }
     if (CONTAINER_TAGS.includes(node.type)) {
       const inner = toFormattedCode(node.children || [], depth + 1);
       if (inner) {
@@ -83,7 +108,11 @@ export const toFormattedCode = (nodes, depth = 0) => {
       }
       return `${indent}<${node.type}></${node.type}>`;
     }
-    return `${indent}<${node.type}>${escapeHTML(node.content || '')}</${node.type}>`;
+    // Known leaf tags and fallback
+    if (KNOWN_LEAF_TAGS.includes(node.type)) {
+      return `${indent}<${node.type}>${escapeHTML(node.content || '')}</${node.type}>`;
+    }
+    return `${indent}<!-- ${escapeHTML(node.type)} -->${escapeHTML(node.content || '')}`;
   }).join('\n');
 };
 

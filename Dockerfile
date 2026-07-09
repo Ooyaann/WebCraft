@@ -12,5 +12,5 @@ COPY backend/ .
 # Hugging Face wajib pakai port 7860
 EXPOSE 7860
 
-# Jalankan uvicorn mengarah ke main.py yang sekarang sudah di root kontainer
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Jalankan alembic upgrade (jika perlu), jalankan seed.py, baru nyalakan uvicorn
+CMD alembic upgrade head && python seed.py && uvicorn main:app --host 0.0.0.0 --port 7860

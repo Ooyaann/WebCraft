@@ -159,6 +159,19 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
 
     access_token = create_access_token(data={"sub": user.id, "role": user.role})
     refresh_token = await create_refresh_token(user.id, db)
+
+    # Housekeeping: purge expired or revoked refresh tokens for this user to
+    # prevent unbounded growth of the refresh_tokens table.
+    cutoff = datetime.datetime.now(datetime.timezone.utc)
+    stale = await db.execute(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user.id,
+            (RefreshToken.revoked == True) | (RefreshToken.expires_at < cutoff)  # noqa: E712
+        )
+    )
+    for old_token in stale.scalars().all():
+        await db.delete(old_token)
+
     return {
         "access_token": access_token,
         "token_type": "bearer",

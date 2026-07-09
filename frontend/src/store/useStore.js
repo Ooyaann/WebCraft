@@ -267,7 +267,9 @@ export const useStore = create(
     };
 
     set(state => ({
-      ast: updateInNodes(state.ast)
+      ast: updateInNodes(state.ast),
+      astPast: [...state.astPast, deepCloneAst(state.ast)].slice(-HISTORY_LIMIT),
+      astFuture: [],
     }));
   },
 

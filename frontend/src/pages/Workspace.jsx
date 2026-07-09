@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { validateAST, toFormattedCode } from '../services/astUtils';
@@ -8,6 +8,7 @@ import PreviewPanel from '../components/workspace/PreviewPanel';
 import CodePanel from '../components/workspace/CodePanel';
 import AITutorChat from '../components/ai/AITutorChat';
 import CTScoreRadar from '../components/ai/CTScoreRadar';
+import WorkspaceOnboarding from '../components/workspace/WorkspaceOnboarding';
 import { aiService } from '../services/aiService';
 import api from '../services/api';
 
@@ -25,12 +26,18 @@ const DEFAULT_LEVEL_CONFIG = {
   ]
 };
 
-export default function Workspace() {
+const SANDBOX_LEVEL_CONFIG = {
+  id: 'sandbox',
+  judul: 'Eksperimen Bebas (Sandbox)',
+  misi: 'Selamat datang di ruang eksperimen bebas! Di sini kamu bebas berkreasi merakit blok HTML apa saja secara langsung tanpa ada tugas atau penilaian AI. Selamat bersenang-senang!',
+  validator_rules: []
+};
+
+export default function Workspace({ isSandbox = false }) {
   const navigate = useNavigate();
   const { tugasId } = useParams(); // task ID
   const {
     ast,
-    activeLevel,
     setActiveLevel,
     activeLevelConfig,
     ctJourneyAnswers,
@@ -53,6 +60,12 @@ export default function Workspace() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+
+  // Onboarding states
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
+    const hideOnboarding = localStorage.getItem('webcraft_hide_onboarding');
+    return hideOnboarding !== 'true';
+  });
 
   // Reflection/Post-coding states
   const [showReflectionModal, setShowReflectionModal] = useState(false);
@@ -79,21 +92,26 @@ export default function Workspace() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [undo, redo]);
 
-  // Block teachers from entering workspace
+  // Block teachers from entering workspace unless in sandbox
   useEffect(() => {
-    if (user && user.role === 'guru') {
+    if (!isSandbox && user && user.role === 'guru') {
       alert("Akses Ditolak: Sebagai Guru (Fasilitator), Anda tidak dapat masuk ke lembar kerja praktik mandiri siswa.");
       navigate('/ruang-belajar');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isSandbox]);
 
 
-  // Reset workspace & set level config when tugasId changes
+  // Reset workspace & set level config when tugasId changes or isSandbox changes
   useEffect(() => {
     // ponytail: always reset AST when entering a new task
     resetWorkspace();
 
-    if (tugasId === 'easy-1' || !tugasId) {
+    if (isSandbox) {
+      setActiveLevel(SANDBOX_LEVEL_CONFIG.id, {
+        ...SANDBOX_LEVEL_CONFIG,
+        type: 'sandbox'
+      });
+    } else if (tugasId === 'easy-1' || !tugasId) {
       setActiveLevel(DEFAULT_LEVEL_CONFIG.id, {
         ...DEFAULT_LEVEL_CONFIG,
         type: 'learning'
@@ -119,7 +137,7 @@ export default function Workspace() {
           });
         });
     }
-  }, [tugasId, setActiveLevel, resetWorkspace]);
+  }, [tugasId, isSandbox, setActiveLevel, resetWorkspace]);
 
   const triggerConfetti = () => {
     const container = document.createElement('div');
@@ -285,7 +303,13 @@ export default function Workspace() {
       <header className="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-6 py-3.5 flex justify-between items-center border-b-4 border-[#0F172A] shrink-0 shadow-md">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/ruang-belajar')}
+            onClick={() => {
+              if (isSandbox) {
+                navigate('/');
+              } else {
+                navigate('/ruang-belajar');
+              }
+            }}
             className="p-1.5 border-2 border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer flex items-center justify-center animate-fade-in"
           >
             <i className="ti ti-arrow-left text-base" />
@@ -299,6 +323,16 @@ export default function Workspace() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsOnboardingOpen(true)}
+            title="Buka Panduan Penggunaan"
+            className="px-3 py-1.5 border-2 border-indigo-400 bg-indigo-950 hover:bg-indigo-900 text-indigo-200 hover:text-white font-fredoka text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-[2px_2px_0px_rgba(255,255,255,0.15)] hover:-translate-y-0.5 active:translate-y-[0.5px]"
+          >
+            <i className="ti ti-help text-sm animate-pulse" />
+            <span className="hidden sm:inline">Panduan</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setShowPreview(prev => !prev)}
@@ -340,12 +374,24 @@ export default function Workspace() {
         
         {/* Mission Instructions Panel */}
         {activeLevelConfig?.misi && (
-          <div className="bg-gradient-to-r from-indigo-50 via-indigo-50/50 to-blue-50/30 border-b-4 border-[#0F172A] px-4 py-3 flex items-center gap-3 shrink-0">
-            <div className="bg-indigo-100 border-2 border-indigo-500 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-[1px_1px_0px_rgba(99,102,241,0.3)]">
-              <i className="ti ti-target text-indigo-600 text-base animate-pulse" />
+          <div className={`border-b-4 border-[#0F172A] px-4 py-3 flex items-center gap-3 shrink-0 ${
+            isSandbox 
+              ? 'bg-gradient-to-r from-amber-50 via-amber-50/50 to-yellow-50/30' 
+              : 'bg-gradient-to-r from-indigo-50 via-indigo-50/50 to-blue-50/30'
+          }`}>
+            <div className={`border-2 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              isSandbox
+                ? 'bg-amber-100 border-amber-500 shadow-[1px_1px_0px_rgba(245,158,11,0.3)]'
+                : 'bg-indigo-100 border-indigo-500 shadow-[1px_1px_0px_rgba(99,102,241,0.3)]'
+            }`}>
+              <i className={`ti ${isSandbox ? 'ti-flask' : 'ti-target'} ${isSandbox ? 'text-amber-600' : 'text-indigo-600'} text-base animate-pulse`} />
             </div>
             <div className="text-left">
-              <span className="font-fredoka text-[9px] font-black text-indigo-600 uppercase tracking-widest block leading-none">Misi yang harus dikerjakan</span>
+              <span className={`font-fredoka text-[9px] font-black uppercase tracking-widest block leading-none ${
+                isSandbox ? 'text-amber-600' : 'text-indigo-600'
+              }`}>
+                {isSandbox ? 'Ruang Eksperimen Bebas (Sandbox)' : 'Misi yang harus dikerjakan'}
+              </span>
               <p className="font-nunito text-xs text-slate-800 font-bold leading-relaxed mt-0.5">{activeLevelConfig.misi}</p>
             </div>
           </div>
@@ -433,39 +479,68 @@ export default function Workspace() {
             )}
           </div>
 
-          <div className="flex gap-3 w-full sm:w-auto shrink-0">
-            <button
-              type="button"
-              onClick={handleValidate}
-              disabled={isValidating}
-              className={`flex-1 sm:flex-initial px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs ${
-                isValidating ? 'opacity-70 cursor-not-allowed shadow-none' : ''
-              }`}
-            >
-              {isValidating ? (
-                <>
-                  <i className="ti ti-loader animate-spin text-sm" />
-                  AI Sedang Memeriksa...
-                </>
-              ) : (
-                <>
-                  <i className="ti ti-sparkles text-yellow-300 text-sm animate-pulse" />
-                  Cek Logika Kode (AI)
-                </>
-              )}
-            </button>
+          {isSandbox ? (
+            <div className="flex gap-3 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("Apakah Anda yakin ingin mengatur ulang kanvas dan mulai dari awal?")) {
+                    resetWorkspace();
+                  }
+                }}
+                className="flex-1 sm:flex-initial px-5 py-2.5 bg-white text-slate-700 border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs"
+              >
+                <i className="ti ti-refresh text-sm" />
+                Atur Ulang Kanvas
+              </button>
 
-
-            <button
-              onClick={handleSubmitChallenge}
-              disabled={!isSuccess}
-              className={`flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-nunito font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:shadow-[4px_4px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all flex items-center justify-center gap-1.5 border-2 border-[#0F172A] text-xs ${!isSuccess ? 'opacity-40 cursor-not-allowed transform-none hover:translate-y-0 shadow-none hover:shadow-none' : ''
+              <button
+                type="button"
+                onClick={() => {
+                  const codeStr = toFormattedCode(ast);
+                  navigator.clipboard.writeText(codeStr);
+                  alert("Kode HTML berhasil disalin ke clipboard!");
+                }}
+                className="flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:shadow-[4px_4px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs"
+              >
+                <i className="ti ti-copy text-sm" />
+                Salin Kode HTML
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={handleValidate}
+                disabled={isValidating}
+                className={`flex-1 sm:flex-initial px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs ${
+                  isValidating ? 'opacity-70 cursor-not-allowed shadow-none' : ''
                 }`}
-            >
-              <i className="ti ti-send text-base" />
-              Kirim Hasil Misi
-            </button>
-          </div>
+              >
+                {isValidating ? (
+                  <>
+                    <i className="ti ti-loader animate-spin text-sm" />
+                    AI Sedang Memeriksa...
+                  </>
+                ) : (
+                  <>
+                    <i className="ti ti-sparkles text-yellow-300 text-sm animate-pulse" />
+                    Cek Logika Kode (AI)
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleSubmitChallenge}
+                disabled={!isSuccess}
+                className={`flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-nunito font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:shadow-[4px_4px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all flex items-center justify-center gap-1.5 border-2 border-[#0F172A] text-xs ${!isSuccess ? 'opacity-40 cursor-not-allowed transform-none hover:translate-y-0 shadow-none hover:shadow-none' : ''
+                  }`}
+              >
+                <i className="ti ti-send text-base" />
+                Kirim Hasil Misi
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -485,7 +560,7 @@ export default function Workspace() {
       )}
 
       {/* Socratic AI Tutor Bubble */}
-      <AITutorChat />
+      {!isSandbox && <AITutorChat />}
 
       {/* Reflection Post-coding Modal */}
       {showReflectionModal && (
@@ -590,6 +665,12 @@ export default function Workspace() {
           </div>
         </div>
       )}
+
+      {/* Workspace Onboarding Guide Tutorial Modal */}
+      <WorkspaceOnboarding 
+        isOpen={isOnboardingOpen} 
+        onClose={() => setIsOnboardingOpen(false)} 
+      />
     </div>
   );
 }
