@@ -76,6 +76,7 @@ type WebcraftState = {
   recordAttempt: (errors: unknown[]) => void;
   setCtJourneyAnswers: (step: keyof CtJourneyAnswers, answers: unknown) => void;
   setCtPreScore: (score: Record<string, number> | null) => void;
+  resetCtJourney: () => void;
   moveOrAddBlock: (
     source: MoveSource,
     targetId: string,
@@ -433,6 +434,13 @@ export const useStore = create<WebcraftState>()(
       })),
 
       setCtPreScore: (score) => set({ ctPreScore: score }),
+
+      // Analisis CT bersifat per-misi: kosongkan saat berpindah ke tugas lain
+      // supaya fase Action misi baru kembali terkunci sampai CT-nya dikerjakan.
+      resetCtJourney: () => set({
+        ctPreScore: null,
+        ctJourneyAnswers: { decomposition: [], abstraction: [], pattern: [], algorithm: [] },
+      }),
 
       moveOrAddBlock: (source, targetId, relation) => {
         let blockToInsert: BlockNode | null = null;

@@ -33,6 +33,12 @@ export default function TugasDetail() {
         // has the correct challenge context, mission text, and validator rules.
         const primary = t.learning_tasks?.[0] || t.project_tasks?.[0];
         if (primary && found) {
+          // Pindah ke tugas yang berbeda → analisis CT misi sebelumnya tidak
+          // berlaku lagi; kunci fase Action harus aktif kembali.
+          const { activeLevel, resetCtJourney } = useStore.getState();
+          if (activeLevel && activeLevel !== primary.id) {
+            resetCtJourney();
+          }
           const isLearning = !!t.learning_tasks?.[0];
           const challenge = found.cbl_engage_json?.challenge
             || (isLearning ? `${found.judul}: Selesaikan instruksi sesuai petunjuk.` : primary.studi_kasus);
@@ -73,6 +79,9 @@ export default function TugasDetail() {
   };
 
   const ctDone = ctPreScore !== null;
+  // Fase berurutan: siswa baru bisa masuk fase 3 (Action) setelah Analisis CT
+  // di fase Investigate selesai. Guru bebas meninjau semua fase.
+  const maxStep = isTeacher || ctDone ? 3 : 2;
 
   if (isLoading) {
     return (
@@ -129,19 +138,26 @@ export default function TugasDetail() {
             { step: 1, label: '1. Engage', icon: 'ti-bulb', activeColor: 'bg-gradient-to-r from-amber-400 to-amber-500 text-[#0F172A]' },
             { step: 2, label: '2. Investigate', icon: 'ti-search', activeColor: 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white' },
             { step: 3, label: '3. Action', icon: 'ti-rocket', activeColor: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white' },
-          ].map((s) => (
-            <button
-              key={s.step}
-              type="button"
-              onClick={() => setWizardStep(s.step)}
-              className={`flex-1 py-4 px-2 text-center font-fredoka text-xs md:text-sm font-bold border-r-4 last:border-r-0 border-[#0F172A] cursor-pointer transition-all hover:bg-slate-50 focus:outline-none flex items-center justify-center gap-1.5 ${
-                wizardStep === s.step ? s.activeColor + ' border-b-4 border-b-[#0F172A]' : 'text-slate-400 bg-white'
-              } ${wizardStep > s.step ? 'bg-slate-100/80 text-slate-500' : ''}`}
-            >
-              <i className={`ti ${s.icon} text-sm md:text-base`} />
-              <span className="hidden sm:inline">{s.label}</span>
-            </button>
-          ))}
+          ].map((s) => {
+            const isLocked = s.step > maxStep;
+            return (
+              <button
+                key={s.step}
+                type="button"
+                disabled={isLocked}
+                title={isLocked ? 'Selesaikan Analisis CT di fase Investigate terlebih dahulu.' : undefined}
+                onClick={() => !isLocked && setWizardStep(s.step)}
+                className={`flex-1 py-4 px-2 text-center font-fredoka text-xs md:text-sm font-bold border-r-4 last:border-r-0 border-[#0F172A] transition-all focus:outline-none flex items-center justify-center gap-1.5 ${
+                  isLocked ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-slate-50'
+                } ${
+                  wizardStep === s.step ? s.activeColor + ' border-b-4 border-b-[#0F172A]' : 'text-slate-400 bg-white'
+                } ${wizardStep > s.step ? 'bg-slate-100/80 text-slate-500' : ''}`}
+              >
+                <i className={`ti ${isLocked ? 'ti-lock' : s.icon} text-sm md:text-base`} />
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Wizard Content Area */}
@@ -393,8 +409,8 @@ export default function TugasDetail() {
           </span>
 
           <button
-            onClick={() => setWizardStep(prev => Math.min(3, prev + 1))}
-            className={`px-6 py-2 bg-[#0F172A] text-white border-2 border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A] font-nunito font-bold rounded-xl text-xs hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center gap-1.5 ${wizardStep === 3 ? 'opacity-0 pointer-events-none' : ''}`}
+            onClick={() => setWizardStep(prev => Math.min(maxStep, prev + 1))}
+            className={`px-6 py-2 bg-[#0F172A] text-white border-2 border-[#0F172A] shadow-[2.5px_2.5px_0px_#0F172A] font-nunito font-bold rounded-xl text-xs hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center gap-1.5 ${wizardStep >= maxStep ? 'opacity-0 pointer-events-none' : ''}`}
           >
             Selanjutnya <i className="ti ti-arrow-right" />
           </button>
