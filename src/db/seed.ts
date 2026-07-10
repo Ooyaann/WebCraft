@@ -17,11 +17,29 @@ for (const file of [".env.local", ".env"]) {
   }
 }
 
+type SeedDb = ReturnType<typeof drizzle<typeof schema>>;
+
+// Dukung dua target: Postgres/Supabase (postgres://) dan mode dev lokal
+// PGlite (pglite://) — untuk PGlite skema dimigrasikan dulu.
+// Catatan: hentikan `next dev` sebelum seed PGlite (data dir dikunci satu proses).
+async function connect(url: string): Promise<{ db: SeedDb; close: () => Promise<void> }> {
+  if (url.startsWith("pglite://")) {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const { drizzle: drizzlePglite } = await import("drizzle-orm/pglite");
+    const { migrate } = await import("drizzle-orm/pglite/migrator");
+    const client = new PGlite(url.slice("pglite://".length) || "./.pglite");
+    const db = drizzlePglite(client, { schema });
+    await migrate(db, { migrationsFolder: "drizzle" });
+    return { db: db as unknown as SeedDb, close: () => client.close() };
+  }
+  const client = postgres(url, { prepare: false, max: 1 });
+  return { db: drizzle(client, { schema }), close: () => client.end() };
+}
+
 async function seed() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL environment variable is not set!");
-  const client = postgres(url, { prepare: false, max: 1 });
-  const db = drizzle(client, { schema });
+  const { db, close } = await connect(url);
 
   console.log("Purging data...");
   // Urutan aman FK (anak dulu)
@@ -288,7 +306,7 @@ async function seed() {
   });
 
   console.log("====== SEEDING SUCCESS ======");
-  await client.end();
+  await close();
 }
 
 seed().catch((err) => {
