@@ -11,6 +11,7 @@ import {
   toUserResponse,
 } from "@/lib/auth";
 import { handler, HttpError, parseBody } from "@/lib/http";
+import { enforceAuthRateLimit } from "@/lib/rateLimit";
 
 const registerSchema = z.object({
   name: z.string().min(1).max(100),
@@ -21,6 +22,7 @@ const registerSchema = z.object({
 });
 
 export const POST = handler(async (req) => {
+  enforceAuthRateLimit(req);
   const body = await parseBody(req, registerSchema);
   const db = getDb();
 

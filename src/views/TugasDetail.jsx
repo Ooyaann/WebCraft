@@ -14,6 +14,7 @@ export default function TugasDetail() {
   const [wizardStep, setWizardStep] = useState(1); // 1: Engage, 2: Investigate, 3: Action
   const [isJourneyOpen, setIsJourneyOpen] = useState(false);
   const [journeyAutoOpened, setJourneyAutoOpened] = useState(false);
+  const [isLockedPertemuan, setIsLockedPertemuan] = useState(false);
 
   const isTeacher = user?.role === 'guru';
 
@@ -21,11 +22,28 @@ export default function TugasDetail() {
     setIsLoading(true);
     Promise.all([
       api.get(`/rooms/${roomId}/pertemuan`),
-      api.get(`/pertemuan/${tugasId}/tasks`)
+      api.get(`/pertemuan/${tugasId}/tasks`),
+      api.get('/submissions/learning/me').catch(() => ({ data: [] })),
+      api.get('/submissions/project/me').catch(() => ({ data: [] }))
     ])
-      .then(([pertRes, tasksRes]) => {
-        const found = pertRes.data?.find(p => p.id === tugasId);
+      .then(([pertRes, tasksRes, subsRes, projRes]) => {
+        const list = pertRes.data || [];
+        const found = list.find(p => p.id === tugasId);
         setPertemuan(found || null);
+
+        // Kunci urutan (paritas RoomDetail): pertemuan hanya terbuka bila
+        // pertama, sudah selesai, atau pertemuan sebelumnya selesai —
+        // menutup jalur pintas via URL langsung.
+        const completed = new Set([
+          ...(subsRes.data?.map(s => s.pertemuan_id).filter(Boolean) || []),
+          ...(projRes.data?.map(p => p.pertemuan_id).filter(Boolean) || [])
+        ]);
+        const idx = list.findIndex(p => p.id === tugasId);
+        const prev = idx > 0 ? list[idx - 1] : null;
+        setIsLockedPertemuan(
+          !isTeacher && !!found && idx > 0 &&
+          !completed.has(tugasId) && !(prev && completed.has(prev.id))
+        );
         const t = tasksRes.data || { learning_tasks: [], project_tasks: [] };
         setTasks(t);
 
@@ -55,7 +73,7 @@ export default function TugasDetail() {
       })
       .catch(err => console.error("Error loading task details:", err))
       .finally(() => setIsLoading(false));
-  }, [roomId, tugasId, setActiveLevel]);
+  }, [roomId, tugasId, setActiveLevel, isTeacher]);
 
   // Auto-open CT Journey the first time the student reaches the Investigate phase
   useEffect(() => {
@@ -103,6 +121,26 @@ export default function TugasDetail() {
           <p className="font-nunito text-xs text-slate-500 font-bold mt-1">
             Data pertemuan ini tidak dapat ditemukan di server.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLockedPertemuan) {
+    return (
+      <div className="w-full px-6 py-12 flex justify-center items-center">
+        <div className="neo-card p-8 text-center max-w-sm border-4 border-[#0F172A] bg-white rounded-[24px] shadow-[6px_6px_0px_#0F172A]">
+          <i className="ti ti-lock text-4xl text-amber-500 mb-2" />
+          <h3 className="font-fredoka text-lg font-bold">Pertemuan Masih Terkunci</h3>
+          <p className="font-nunito text-xs text-slate-500 font-bold mt-1 leading-relaxed">
+            Selesaikan pertemuan sebelumnya terlebih dahulu untuk membuka {pertemuan.judul}.
+          </p>
+          <button
+            onClick={() => navigate(`/ruang-belajar/${roomId}`)}
+            className="mt-4 px-5 py-2.5 bg-[#FACC15] text-[#0F172A] border-2 border-[#0F172A] font-fredoka text-xs font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all"
+          >
+            Kembali ke Ruang Belajar
+          </button>
         </div>
       </div>
     );

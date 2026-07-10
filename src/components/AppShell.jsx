@@ -86,7 +86,7 @@ export default function AppShell({ children }) {
   if (!mounted) return null;
 
   // Workspace pages should be full screen with no sidebar, header, or footer
-  const isWorkspace = pathname.startsWith('/workspace/');
+  const isWorkspace = pathname.startsWith('/workspace/') || pathname === '/sandbox';
 
   return (
     <div className="min-h-screen bg-transparent text-[#0F172A] flex flex-col md:flex-row font-nunito selection:bg-[#FACC15] neo-cursor-sparkle">

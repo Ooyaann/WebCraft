@@ -32,6 +32,7 @@ const params = <T>(p: T) => ({ params: Promise.resolve(p) });
 
 let guruToken = "";
 let siswaToken = "";
+let siswaLuarToken = ""; // siswa yang TIDAK bergabung ke kelas
 let roomId = "";
 let roomCode = "";
 let pertemuanId = "";
@@ -69,6 +70,18 @@ beforeAll(async () => {
     {},
   );
   siswaToken = (await siswaRes.json()).access_token;
+
+  const luarRes = await register(
+    jsonReq("/api/auth/register", "POST", {
+      name: "Caca",
+      email: "caca@siswa.com",
+      password: "siswa12345",
+      role: "siswa",
+      nisn_nip: "0987654321",
+    }),
+    {},
+  );
+  siswaLuarToken = (await luarRes.json()).access_token;
 });
 
 describe("alur kelas", () => {
@@ -138,14 +151,51 @@ describe("alur kelas", () => {
 });
 
 describe("alur pengerjaan siswa", () => {
-  it("submit learning → skor terhitung (2 percobaan, tanpa error = 95)", async () => {
+  it("siswa non-anggota kelas ditolak submit (403)", async () => {
     const { POST } = await import("@/app/api/submissions/learning/route");
+    const res = await POST(
+      jsonReq("/api/submissions/learning", "POST", {
+        task_id: learningTaskId,
+        ast_snapshots: [{ attempt: 1, ast: [], errors: [] }],
+        attempt_count: 1,
+      }, siswaLuarToken),
+      {},
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("skor dihitung ulang server: error palsu dari klien diabaikan", async () => {
+    const { POST } = await import("@/app/api/submissions/learning/route");
+    // AST rusak (hanya body kosong) tapi klien mengklaim errors: []
+    const res = await POST(
+      jsonReq("/api/submissions/learning", "POST", {
+        task_id: learningTaskId,
+        ast_snapshots: [{ attempt: 1, ast: [{ type: "body", children: [] }], errors: [] }],
+        attempt_count: 1,
+      }, siswaToken),
+      {},
+    );
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    // 4 aturan gagal (h1, body>h1, p, body>p) → 100 - 4*15 = 40
+    expect(data.accuracy).toBe(40);
+  });
+
+  it("submit learning valid → skor terhitung (2 percobaan, tanpa error = 95)", async () => {
+    const { POST } = await import("@/app/api/submissions/learning/route");
+    const validAst = [{
+      type: "body",
+      children: [
+        { type: "h1", content: "Profil Andi" },
+        { type: "p", content: "Halo, saya Andi!" },
+      ],
+    }];
     const res = await POST(
       jsonReq("/api/submissions/learning", "POST", {
         task_id: learningTaskId,
         ast_snapshots: [
           { attempt: 1, ast: [], errors: [{ message: "Belum ada body" }] },
-          { attempt: 2, ast: [{ type: "body" }], errors: [] },
+          { attempt: 2, ast: validAst, errors: [] },
         ],
         attempt_count: 2,
         ct_post_score: { decomposition: 90, pattern_recognition: 85, abstraction: 88, algorithm_design: 92 },

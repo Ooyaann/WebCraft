@@ -166,4 +166,17 @@ describe("auth", () => {
     );
     expect(after.status).toBe(401);
   });
+
+  it("rate limit: percobaan login beruntun akhirnya ditolak 429", async () => {
+    const { POST } = await import("@/app/api/auth/login/route");
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const res = await POST(
+        postJson("/api/auth/login", { email: siswa.email, password: "salah-terus" }),
+        {},
+      );
+      statuses.push(res.status);
+    }
+    expect(statuses).toContain(429);
+  });
 });

@@ -3,18 +3,24 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { learningSubmissions, learningTasks } from "@/db/schema";
+import {
+  learningSubmissions,
+  learningTasks,
+  pertemuan,
+  roomMembers,
+} from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { handler, HttpError, parseBody } from "@/lib/http";
+import { validateAst, type AstNode } from "@/lib/validator";
 
 const submissionSchema = z.object({
   task_id: z.string(),
   ast_snapshots: z.array(z.record(z.string(), z.unknown())),
-  attempt_count: z.number().int(),
+  attempt_count: z.number().int().min(0),
   ct_session_id: z.string().nullish(),
   reflection_answers: z.record(z.string(), z.unknown()).nullish(),
   ai_feedback: z.string().nullish(),
-  ct_post_score: z.record(z.string(), z.number()).nullish(),
+  ct_post_score: z.record(z.string(), z.number().min(0).max(100)).nullish(),
 });
 
 // Skor efisiensi proses berdasarkan jumlah percobaan (port submissions.py)
@@ -33,7 +39,7 @@ export const POST = handler(async (req) => {
   const db = getDb();
 
   const [task] = await db
-    .select({ id: learningTasks.id })
+    .select()
     .from(learningTasks)
     .where(eq(learningTasks.id, body.task_id))
     .limit(1);
@@ -41,11 +47,36 @@ export const POST = handler(async (req) => {
     throw new HttpError(404, "Tugas belajar (learning task) tidak ditemukan.");
   }
 
-  const efficiency = calculateEfficiencyScore(body.attempt_count);
+  // Siswa hanya boleh submit ke task milik kelas yang ia ikuti.
+  if (user.role === "siswa") {
+    const [membership] = await db
+      .select({ siswa_id: roomMembers.siswa_id })
+      .from(pertemuan)
+      .innerJoin(
+        roomMembers,
+        and(
+          eq(roomMembers.room_id, pertemuan.room_id),
+          eq(roomMembers.siswa_id, user.id),
+        ),
+      )
+      .where(eq(pertemuan.id, task.pertemuan_id))
+      .limit(1);
+    if (!membership) {
+      throw new HttpError(403, "Anda bukan anggota kelas untuk tugas ini.");
+    }
+  }
+
+  // Akurasi dihitung ulang di SERVER dari AST final terhadap aturan task —
+  // daftar error kiriman klien tidak dipercaya (mencegah skor palsu).
+  // ponytail: attempt_count/efficiency masih klaim klien; batas kejujurannya
+  // adalah minimal sebanyak snapshot yang dikirim.
+  const attemptCount = Math.max(body.attempt_count, body.ast_snapshots.length);
+  const efficiency = calculateEfficiencyScore(attemptCount);
   const lastSnapshot = body.ast_snapshots[body.ast_snapshots.length - 1];
-  const finalErrors = (lastSnapshot?.["errors"] as unknown[] | undefined) ?? [];
+  const finalAst = (lastSnapshot?.["ast"] as AstNode[] | undefined) ?? [];
+  const serverErrors = validateAst(finalAst, task.validator_rules_json ?? []);
   const accuracy =
-    finalErrors.length === 0 ? 100 : Math.max(0, 100 - finalErrors.length * 15);
+    serverErrors.length === 0 ? 100 : Math.max(0, 100 - serverErrors.length * 15);
   const finalScore = Math.trunc((accuracy + efficiency) / 2);
 
   // Simpan CT post-assessment hanya bila dikirim klien; jangan mengarang skor
@@ -57,7 +88,7 @@ export const POST = handler(async (req) => {
 
   const values = {
     ast_snapshots_json: body.ast_snapshots,
-    attempt_count: body.attempt_count,
+    attempt_count: attemptCount,
     final_score: finalScore,
     accuracy_score: accuracy,
     efficiency_score: efficiency,

@@ -11,6 +11,11 @@ import "./index.css";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000",
+  ),
   title: "WebCraft - Belajar Coding Web Interaktif",
   description:
     "WebCraft - Platform pembelajaran interaktif pengembangan Computational Thinking melalui Web Development untuk siswa SMP.",

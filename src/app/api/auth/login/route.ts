@@ -10,6 +10,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { handler, HttpError, parseBody } from "@/lib/http";
+import { enforceAuthRateLimit } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -17,6 +18,7 @@ const loginSchema = z.object({
 });
 
 export const POST = handler(async (req) => {
+  enforceAuthRateLimit(req);
   const body = await parseBody(req, loginSchema);
   const db = getDb();
 

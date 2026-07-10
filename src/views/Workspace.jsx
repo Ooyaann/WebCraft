@@ -100,6 +100,20 @@ export default function Workspace({ isSandbox = false }) {
     }
   }, [user, navigate, isSandbox]);
 
+  // Alur berurutan: siswa harus menyelesaikan Analisis CT (fase Investigate)
+  // sebelum masuk workspace misi — menutup akses langsung via URL.
+  useEffect(() => {
+    if (isSandbox || !activeLevelConfig || activeLevelConfig.type === 'sandbox') return;
+    if (!user || user.role !== 'siswa') return;
+    const { ctPreScore } = useStore.getState();
+    if (ctPreScore == null) {
+      const dest = activeLevelConfig.room_id && activeLevelConfig.pertemuan_id
+        ? `/ruang-belajar/${activeLevelConfig.room_id}/tugas/${activeLevelConfig.pertemuan_id}`
+        : '/ruang-belajar';
+      navigate(dest, { replace: true });
+    }
+  }, [activeLevelConfig, isSandbox, user, navigate]);
+
 
   // Reset workspace & set level config when tugasId changes or isSandbox changes
   useEffect(() => {
@@ -120,11 +134,18 @@ export default function Workspace({ isSandbox = false }) {
       api.get(`/pertemuan/tasks/${tugasId}`)
         .then(res => {
           const config = res.data;
+          // Pindah ke task berbeda → analisis CT task sebelumnya tidak berlaku
+          // (paritas dengan TugasDetail; menutup jalur pintas via URL).
+          const { activeLevel, resetCtJourney } = useStore.getState();
+          if (activeLevel && activeLevel !== config.id) {
+            resetCtJourney();
+          }
           setActiveLevel(config.id, {
             id: config.id,
             judul: config.judul,
             type: config.type,
             pertemuan_id: config.pertemuan_id || null,
+            room_id: config.room_id || null,
             misi: config.misi || config.studi_kasus || `${config.judul}: Selesaikan instruksi sesuai petunjuk.`,
             validator_rules: config.validator_rules_json || []
           });

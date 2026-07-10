@@ -7,6 +7,7 @@ import {
   pertemuan,
   projectSubmissions,
   projectTasks,
+  roomMembers,
   rooms,
   users,
 } from "@/db/schema";
@@ -33,6 +34,25 @@ export const POST = handler(async (req) => {
     .limit(1);
   if (!projectTask) {
     throw new HttpError(404, "Tantangan proyek (project task) tidak ditemukan.");
+  }
+
+  // Siswa hanya boleh submit ke task milik kelas yang ia ikuti.
+  if (user.role === "siswa") {
+    const [membership] = await db
+      .select({ siswa_id: roomMembers.siswa_id })
+      .from(pertemuan)
+      .innerJoin(
+        roomMembers,
+        and(
+          eq(roomMembers.room_id, pertemuan.room_id),
+          eq(roomMembers.siswa_id, user.id),
+        ),
+      )
+      .where(eq(pertemuan.id, projectTask.pertemuan_id))
+      .limit(1);
+    if (!membership) {
+      throw new HttpError(403, "Anda bukan anggota kelas untuk tugas ini.");
+    }
   }
 
   let aiSuggestion: Record<string, unknown>;

@@ -7,6 +7,7 @@ import WebCraftLogo from '../common/WebCraftLogo';
 const menuConfig = {
   guest: [
     { to: '/', icon: 'ti-home', label: 'Beranda' },
+    { to: '/sandbox', icon: 'ti-flask', label: 'Buat Karya' },
   ],
   siswa: [
     { to: '/', icon: 'ti-home', label: 'Beranda' },
@@ -90,7 +91,7 @@ export default function Sidebar() {
   };
 
   // Hide sidebar on workspace page for full immersion
-  const isWorkspacePage = location.pathname.startsWith('/workspace/');
+  const isWorkspacePage = location.pathname.startsWith('/workspace/') || location.pathname === '/sandbox';
   if (isWorkspacePage) return null;
 
   const desktopSidebar = (
