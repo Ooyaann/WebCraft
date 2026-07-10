@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 // Font & ikon self-hosted (tanpa CDN, tetap jalan offline) — paritas main.jsx lama.
 import "@fontsource-variable/fredoka/index.css";
 import "@fontsource-variable/nunito/index.css";
@@ -41,6 +43,8 @@ export default function RootLayout({
     <html lang="id">
       <body className="bg-[#E0F2FE] text-[#0F172A] font-nunito antialiased">
         <AppShell>{children}</AppShell>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
