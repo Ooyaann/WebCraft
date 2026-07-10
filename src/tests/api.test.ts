@@ -2,7 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { beforeAll, describe, expect, it } from "vitest";
-import { setDbForTests, type Db } from "@/db";
+import { setDb, type Db } from "@/db";
 import * as schema from "@/db/schema";
 
 // Integrasi alur penuh guru + siswa terhadap PGlite, memakai fallback AI
@@ -43,7 +43,7 @@ beforeAll(async () => {
   const client = new PGlite();
   const db = drizzle(client, { schema });
   await migrate(db, { migrationsFolder: "drizzle" });
-  setDbForTests(db as unknown as Db);
+  setDb(db as unknown as Db);
 
   const { POST: register } = await import("@/app/api/auth/register/route");
   const guruRes = await register(

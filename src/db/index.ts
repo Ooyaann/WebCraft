@@ -9,8 +9,9 @@ export type Db = PostgresJsDatabase<typeof schema>;
 // tidak membocorkan koneksi.
 const globalForDb = globalThis as unknown as { __webcraftDb?: Db };
 
-// Hanya untuk test: injeksi database PGlite in-memory.
-export function setDbForTests(db: Db) {
+// Injeksi database non-postgres-js: dipakai test (PGlite in-memory) dan
+// mode dev lokal PGlite (lihat src/instrumentation.ts).
+export function setDb(db: Db) {
   globalForDb.__webcraftDb = db;
 }
 

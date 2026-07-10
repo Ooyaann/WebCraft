@@ -2,7 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { beforeAll, describe, expect, it } from "vitest";
-import { setDbForTests, type Db } from "@/db";
+import { setDb, type Db } from "@/db";
 import * as schema from "@/db/schema";
 
 // End-to-end alur auth terhadap Postgres in-memory (PGlite) memakai
@@ -34,7 +34,7 @@ beforeAll(async () => {
   const client = new PGlite();
   const db = drizzle(client, { schema });
   await migrate(db, { migrationsFolder: "drizzle" });
-  setDbForTests(db as unknown as Db);
+  setDb(db as unknown as Db);
 });
 
 describe("auth", () => {
