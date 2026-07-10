@@ -31,7 +31,15 @@ export default function BerandaSiswa({ user }) {
     }
   }, [activeRoom]);
 
-  const activeTasks = tasks.filter((t) => t.is_published).slice(0, 3);
+  // Sembunyikan pertemuan yang sudah selesai — aturan sama dengan RoomDetail:
+  // selesai = ada submission belajar ATAU proyek dengan pertemuan_id ini.
+  const completedIds = new Set([
+    ...submissions.map((s) => s.pertemuan_id).filter(Boolean),
+    ...projectSubmissions.map((p) => p.pertemuan_id).filter(Boolean),
+  ]);
+  const activeTasks = tasks
+    .filter((t) => t.is_published && !completedIds.has(t.id))
+    .slice(0, 3);
 
   // Find real teacher feedback from project or learning submissions
   const latestFeedback = useMemo(() => {
