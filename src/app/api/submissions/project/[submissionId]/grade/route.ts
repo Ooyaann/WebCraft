@@ -36,33 +36,36 @@ export const PUT = handler<Ctx>(async (req, ctx) => {
     throw new HttpError(404, "Submission proyek tidak ditemukan.");
   }
 
-  await db
-    .update(projectSubmissions)
-    .set({
-      teacher_score: body.teacher_score,
-      teacher_comment: body.teacher_comment,
-      rubrik_scores_json: body.rubrik_scores,
-      is_published_to_gallery: body.is_published_to_gallery,
-    })
-    .where(eq(projectSubmissions.id, submissionId));
+  // Transaksi: nilai + status publikasi galeri harus konsisten.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(projectSubmissions)
+      .set({
+        teacher_score: body.teacher_score,
+        teacher_comment: body.teacher_comment,
+        rubrik_scores_json: body.rubrik_scores,
+        is_published_to_gallery: body.is_published_to_gallery,
+      })
+      .where(eq(projectSubmissions.id, submissionId));
 
-  const [galleryItem] = await db
-    .select({ id: galleryItems.id })
-    .from(galleryItems)
-    .where(eq(galleryItems.project_submission_id, submissionId))
-    .limit(1);
+    const [galleryItem] = await tx
+      .select({ id: galleryItems.id })
+      .from(galleryItems)
+      .where(eq(galleryItems.project_submission_id, submissionId))
+      .limit(1);
 
-  if (body.is_published_to_gallery) {
-    if (!galleryItem) {
-      await db.insert(galleryItems).values({
-        id: randomUUID(),
-        project_submission_id: submissionId,
-        appreciation_count: 0,
-      });
+    if (body.is_published_to_gallery) {
+      if (!galleryItem) {
+        await tx.insert(galleryItems).values({
+          id: randomUUID(),
+          project_submission_id: submissionId,
+          appreciation_count: 0,
+        });
+      }
+    } else if (galleryItem) {
+      await tx.delete(galleryItems).where(eq(galleryItems.id, galleryItem.id));
     }
-  } else if (galleryItem) {
-    await db.delete(galleryItems).where(eq(galleryItems.id, galleryItem.id));
-  }
+  });
 
   return NextResponse.json({
     message: "Submission berhasil dinilai!",

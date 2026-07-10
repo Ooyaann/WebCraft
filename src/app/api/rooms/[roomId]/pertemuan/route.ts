@@ -80,40 +80,45 @@ export const POST = handler<Ctx>(async (req, ctx) => {
     throw new HttpError(403, "Hanya pembuat kelas yang diizinkan menambahkan pertemuan.");
   }
 
-  const [pert] = await db
-    .insert(pertemuan)
-    .values({
-      id: randomUUID(),
-      room_id: roomId,
-      urutan: body.urutan,
-      judul: body.judul,
-      is_published: true,
-      cbl_engage_json: body.cbl_engage_json ?? null,
-      guiding_questions_json: body.guiding_questions_json ?? null,
-      reflection_questions_json: body.reflection_questions_json ?? null,
-      materi_list_json: body.materi_list_json ?? [],
-    })
-    .returning();
-
   const { rules, studiKasus } = seedContent(body.judul);
 
-  await db.insert(learningTasks).values({
-    id: randomUUID(),
-    pertemuan_id: pert.id,
-    judul: body.judul,
-    validator_rules_json: rules,
-    max_attempts_before_ai_hint: 4,
-  });
-  await db.insert(projectTasks).values({
-    id: randomUUID(),
-    pertemuan_id: pert.id,
-    judul: `Proyek: ${body.judul}`,
-    studi_kasus: studiKasus,
-    rubrik_json: [
-      { name: "Kelengkapan elemen", bobot: 30 },
-      { name: "Kebenaran semantik", bobot: 35 },
-      { name: "Kreativitas desain", bobot: 35 },
-    ],
+  // Transaksi: pertemuan + kedua task auto-seed harus atomik (paritas
+  // commit-per-request FastAPI lama) — jangan sampai ada pertemuan tanpa task.
+  const pert = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(pertemuan)
+      .values({
+        id: randomUUID(),
+        room_id: roomId,
+        urutan: body.urutan,
+        judul: body.judul,
+        is_published: true,
+        cbl_engage_json: body.cbl_engage_json ?? null,
+        guiding_questions_json: body.guiding_questions_json ?? null,
+        reflection_questions_json: body.reflection_questions_json ?? null,
+        materi_list_json: body.materi_list_json ?? [],
+      })
+      .returning();
+
+    await tx.insert(learningTasks).values({
+      id: randomUUID(),
+      pertemuan_id: created.id,
+      judul: body.judul,
+      validator_rules_json: rules,
+      max_attempts_before_ai_hint: 4,
+    });
+    await tx.insert(projectTasks).values({
+      id: randomUUID(),
+      pertemuan_id: created.id,
+      judul: `Proyek: ${body.judul}`,
+      studi_kasus: studiKasus,
+      rubrik_json: [
+        { name: "Kelengkapan elemen", bobot: 30 },
+        { name: "Kebenaran semantik", bobot: 35 },
+        { name: "Kreativitas desain", bobot: 35 },
+      ],
+    });
+    return created;
   });
 
   return NextResponse.json(pert);
