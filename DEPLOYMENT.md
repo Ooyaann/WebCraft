@@ -1,92 +1,72 @@
-# Deployment Guide — WebCraft
+# Deployment Guide — WebCraft v3
 
-Arsitektur: **Frontend → Vercel**, **Backend → Hugging Face Spaces (Docker)**.
+Arsitektur: **satu project Vercel** (Next.js full-stack) + **Supabase Postgres**.
+Tidak ada lagi Hugging Face Spaces, Docker, atau CORS antar-domain.
 
 ---
 
 ## 0. Prasyarat (WAJIB sebelum publik)
 
 - [ ] **Rotasi kunci** yang pernah bocor di repo lama:
-  - `JWT_SECRET` baru: `python -c "import secrets; print(secrets.token_urlsafe(48))"`
+  - `JWT_SECRET` baru: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
   - `GEMINI_API_KEY` baru dari Google AI Studio.
-- [ ] Pastikan `.env` **tidak** ter-commit (sudah di `.gitignore`).
+- [ ] Pastikan `.env.local` **tidak** ter-commit (sudah di `.gitignore`).
 - [ ] Repo lama `Ooyaann/webcraft-education` dijadikan **private** / dihapus.
 
 ---
 
-## 1. Backend — Hugging Face Spaces (Docker)
+## 1. Supabase (database)
 
-Deploy otomatis lewat `.github/workflows/deploy.yml` (push ke `main` → GitHub Action
-force-push repo ke Space `Ooyaann/webcraft-backend`). Space membangun dari
-`Dockerfile` root (port **7860**).
-
-### 1a. GitHub secret
-- Di GitHub repo → Settings → Secrets and variables → Actions → tambah:
-  - `HF_TOKEN` = token Hugging Face (role **write**).
-
-### 1b. Secrets/Variables di Hugging Face Space
-Space → Settings → **Variables and secrets**:
-
-| Nama | Tipe | Nilai |
-|------|------|-------|
-| `JWT_SECRET` | secret | hasil rotasi (token_urlsafe) |
-| `GEMINI_API_KEY` | secret | Gemini API key baru |
-| `ALLOWED_ORIGINS` | variable | `https://<domain-vercel-kamu>.vercel.app` (tanpa slash akhir) |
-| `DATABASE_URL` | secret | **disarankan Postgres** (lihat 1c) |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | variable | `30` (opsional) |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | variable | `7` (opsional) |
-
-### 1c. Database — PENTING
-- SQLite di HF Spaces bersifat **ephemeral** (hilang saat Space restart/rebuild).
-  Untuk data yang persisten (akun, submission), pakai **Postgres** (mis. Supabase):
-  ```
-  DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/DBNAME
-  ```
-  Driver `asyncpg` sudah ada di `requirements.txt`.
-- Skema tabel dibuat otomatis saat startup (`create_all`). Untuk migrasi
-  terversion, lihat `backend/MIGRATIONS.md` (`alembic upgrade head`).
-
-### 1d. Seeding data awal (akun demo)
-Aplikasi tidak auto-seed. Untuk mengisi akun demo (budi/andi) + contoh kelas:
-- Jalankan `python seed.py` **sekali** terhadap `DATABASE_URL` produksi.
-  > ⚠️ `seed.py` melakukan `drop_all` lebih dulu — jalankan hanya saat setup awal,
-  > JANGAN pada database yang sudah berisi data asli.
-- Atau daftarkan akun guru/siswa langsung lewat halaman Register.
+1. Buat project di [supabase.com](https://supabase.com) (region terdekat, mis. Singapore).
+2. Dashboard → **Connect** → tab **Transaction pooler** → salin URI (port **6543**):
+   ```
+   postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+   ```
+3. Buat skema + data demo dari mesin lokal:
+   ```bash
+   # isi DATABASE_URL produksi sementara di .env.local, lalu:
+   npm run db:push     # buat semua tabel
+   npm run seed        # akun demo budi/andi + kelas contoh (OPSIONAL)
+   ```
+   > ⚠️ `npm run seed` menghapus seluruh data lebih dulu — jangan jalankan pada
+   > database yang sudah berisi data asli.
 
 ---
 
-## 2. Frontend — Vercel
+## 2. Vercel (aplikasi)
 
-1. Vercel → New Project → import repo GitHub ini.
-2. **Root Directory**: `frontend`  (penting — bukan root repo).
-3. Framework Preset: **Vite** (otomatis). Build: `npm run build`, Output: `dist`.
-4. Environment Variables:
+1. Vercel → **New Project** → import repo GitHub ini.
+2. Root Directory: **root repo** (default). Framework: **Next.js** (otomatis).
+3. Environment Variables:
+
    | Nama | Nilai |
    |------|-------|
-   | `VITE_API_URL` | `https://<space-kamu>.hf.space/api`  ← **harus diakhiri `/api`** |
-5. Deploy. Routing SPA sudah ditangani `frontend/vercel.json`.
+   | `DATABASE_URL` | URI transaction pooler Supabase (port 6543) |
+   | `JWT_SECRET` | hasil rotasi (base64url 48 byte) |
+   | `GEMINI_API_KEY` | API key Gemini baru (kosongkan = mode AI offline) |
+   | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` (opsional) |
+   | `REFRESH_TOKEN_EXPIRE_DAYS` | `7` (opsional) |
 
-Setelah domain Vercel jadi, **update `ALLOWED_ORIGINS`** di HF Space agar cocok,
-lalu restart Space (kalau tidak, request diblokir CORS).
+4. Deploy. UI dan API berada di origin yang sama (`/api/*`) — tidak perlu
+   konfigurasi CORS ataupun `VITE_API_URL`.
 
 ---
 
 ## 3. Checklist verifikasi pasca-deploy
 
-- [ ] Buka domain Vercel → halaman login tampil, font & ikon muncul (offline-ready).
-- [ ] Login `andi@siswa.com` / `siswa123` berhasil (berarti CORS + API + DB OK).
-- [ ] Network tab: request ke `https://<space>/api/...` = 200 (bukan CORS error).
+- [ ] Buka domain Vercel → halaman beranda tampil, font & ikon muncul.
+- [ ] `https://<domain>/api/health` → `{"status":"online",...}`.
+- [ ] Login `andi@siswa.com` / `siswa123` berhasil (berarti DB OK).
 - [ ] Buat/lihat kelas, kerjakan misi, cek Rekap & Penilaian guru.
-- [ ] Token refresh: biarkan >30 menit atau hapus `webcraft_token`, aksi berikutnya
+- [ ] Token refresh: hapus `webcraft_token` di localStorage → aksi berikutnya
       auto-refresh mulus.
 
 ---
 
 ## Ringkasan variabel lingkungan
 
-**Backend (HF Space):** `JWT_SECRET`, `GEMINI_API_KEY`, `ALLOWED_ORIGINS`,
-`DATABASE_URL`, (opsional) `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`.
+**Vercel:** `DATABASE_URL`, `JWT_SECRET`, `GEMINI_API_KEY`,
+(opsional) `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`.
 
-**Frontend (Vercel):** `VITE_API_URL` (diakhiri `/api`).
-
-**GitHub Actions:** `HF_TOKEN`.
+**Dev lokal (`.env.local`):** `DATABASE_URL=pglite://./.pglite` + `JWT_SECRET`
+(+ `GEMINI_API_KEY` bila ingin AI online).

@@ -1,13 +1,3 @@
----
-title: WebCraft Backend
-emoji: 🧩
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # WebCraft
 
 Platform pembelajaran web interaktif berbasis **Challenge-Based Learning (CBL)** dan
@@ -15,37 +5,50 @@ Platform pembelajaran web interaktif berbasis **Challenge-Based Learning (CBL)**
 visual (blok → AST) dengan pendampingan AI, sementara guru mengelola kelas,
 pertemuan, aturan validasi misi, konten CT Journey, dan penilaian.
 
-> Catatan: frontmatter YAML di atas dipakai Hugging Face Spaces (deploy backend
-> via Docker). GitHub akan menampilkannya sebagai tabel kecil — aman diabaikan.
+## Arsitektur (v3)
 
-## Arsitektur
+Satu aplikasi **Next.js 16 full-stack TypeScript**, satu deploy ke **Vercel**:
 
-- **Frontend** — React + Vite (folder `frontend/`). Di-deploy ke **Vercel**.
-- **Backend** — FastAPI + SQLAlchemy async (folder `backend/`). Di-deploy ke
-  **Hugging Face Spaces** (Docker, port 7860) via `.github/workflows/deploy.yml`.
+- **UI** — React 19 + Tailwind v4 (`src/app`, `src/views`, `src/components`),
+  gaya neo-brutalist, font & ikon self-hosted (offline-ready).
+- **API** — Route Handlers di `src/app/api/*` (port 1:1 dari FastAPI lama;
+  path & bentuk respons identik).
+- **Database** — Postgres (Supabase) via **Drizzle ORM** (`src/db`).
+  Migrasi SQL di `drizzle/`.
+- **AI** — Gemini (`@google/genai`) dengan fallback offline (`src/lib/ai.ts`);
+  tanpa `GEMINI_API_KEY` aplikasi tetap berfungsi penuh dalam mode offline.
 
 ## Menjalankan secara lokal
 
-Backend:
-```bash
-cd backend
-python -m venv .venv && .venv/Scripts/activate   # (Windows) / source .venv/bin/activate (Unix)
-pip install -r requirements.txt
-cp .env.example .env   # lalu isi JWT_SECRET & GEMINI_API_KEY
-python seed.py         # data awal: 1 guru (budi) + 1 siswa (andi)
-uvicorn main:app --reload --port 8000
-```
+Tanpa install Postgres apa pun — pakai mode PGlite (Postgres in-process):
 
-Frontend:
 ```bash
-cd frontend
 npm install
-npm run dev            # Vite dev server di port 5173, proxy /api -> http://localhost:8000
+cp .env.example .env.local
+# isi .env.local:
+#   DATABASE_URL=pglite://./.pglite
+#   JWT_SECRET=<bebas untuk dev>
+npm run dev            # http://localhost:3000
 ```
 
-Akun demo: guru `budi@guru.com` / `guru123`, siswa `andi@siswa.com` / `siswa123`.
+Skema dibuat otomatis saat server start (mode PGlite). Untuk Postgres/Supabase:
+`npm run db:push` (buat skema) lalu `npm run seed` (akun demo budi/andi + kelas contoh).
+
+Akun demo hasil seed: guru `budi@guru.com` / `guru123`, siswa `andi@siswa.com` / `siswa123`.
+
+## Perintah
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | Dev server (Turbopack) |
+| `npm run build` / `start` | Build & serve produksi |
+| `npm test` | Vitest (33 test: auth, integrasi API via PGlite, astUtils, store) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run db:push` | Terapkan skema Drizzle ke DATABASE_URL |
+| `npm run db:generate` / `db:migrate` | Buat / jalankan migrasi SQL |
+| `npm run seed` | Isi data demo (menghapus data lama!) |
 
 ## Deploy
 
-Lihat [DEPLOYMENT.md](DEPLOYMENT.md) untuk langkah lengkap (Vercel + Hugging Face),
-variabel lingkungan, dan checklist.
+Lihat [DEPLOYMENT.md](DEPLOYMENT.md) — Vercel + Supabase, variabel lingkungan,
+dan checklist verifikasi.
