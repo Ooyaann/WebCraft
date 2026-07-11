@@ -26,8 +26,6 @@
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "jose": "^6.2.3",
-    "material-symbols": "^0.45.6",
-    "motion": "^12.42.2",
     "next": "^16.2.10",
     "postgres": "^3.4.9",
     "react": "^19.2.7",

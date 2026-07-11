@@ -151,61 +151,52 @@ export default function PenilaianAnalitik() {
     }
   };
 
-  // Compute Grade Distribution metrics dynamically
+  // Rata-rata hanya dari angka NYATA (null = belum ada data → dilewati),
+  // tidak mengarang skor. Kembalikan null bila tak ada data sama sekali.
+  const meanOf = (nums) => {
+    const real = nums.filter((n) => typeof n === 'number');
+    return real.length ? Math.round(real.reduce((a, b) => a + b, 0) / real.length) : null;
+  };
+
+  // Distribusi nilai: komposit per siswa = rata-rata nilai nyata yang dimiliki
+  // (misi belajar + proyek). Siswa tanpa nilai apa pun tidak dihitung.
   const distributionData = useMemo(() => {
-    let under70 = 0, under80 = 0, under90 = 0, under100 = 0;
+    let under70 = 0, under80 = 0, under90 = 0, under100 = 0, belumAda = 0;
     studentGrades.forEach(s => {
-      const avg = Math.round(((s.pre || 0) + (s.learning || 0) + (s.project || 80)) / 3);
+      const avg = meanOf([s.learning, s.project]);
+      if (avg === null) { belumAda++; return; }
       if (avg < 70) under70++;
       else if (avg < 80) under80++;
       else if (avg < 90) under90++;
       else under100++;
     });
-
-    return {
-      under70,
-      under80,
-      under90,
-      under100
-    };
+    return { under70, under80, under90, under100, belumAda };
   }, [studentGrades]);
 
-  // Compute class average for each CT pillar dynamically
+  // Rata-rata pilar CT kelas — hanya siswa yang punya skor CT nyata
   const classPillarData = useMemo(() => {
-    if (studentGrades.length === 0) {
-      return [
-        { name: 'Dekomposisi', score: 0, color: 'bg-blue-500', text: 'blue-600' },
-        { name: 'Abstraksi', score: 0, color: 'bg-pink-500', text: 'pink-650' },
-        { name: 'Pengenalan Pola', score: 0, color: 'bg-amber-500', text: 'amber-600' },
-        { name: 'Desain Algoritma', score: 0, color: 'bg-emerald-500', text: 'emerald-600' }
-      ];
-    }
-    const sumDecomp = studentGrades.reduce((sum, s) => sum + (s.decomposition || 0), 0);
-    const sumAbstract = studentGrades.reduce((sum, s) => sum + (s.abstraction || 0), 0);
-    const sumPattern = studentGrades.reduce((sum, s) => sum + (s.pattern_recognition || 0), 0);
-    const sumAlgo = studentGrades.reduce((sum, s) => sum + (s.algorithm_design || 0), 0);
-    const count = studentGrades.length;
-
+    const pillar = (key) => meanOf(studentGrades.map((s) => s[key])) ?? 0;
     return [
-      { name: 'Dekomposisi', score: Math.round(sumDecomp / count), color: 'bg-blue-500', text: 'blue-600' },
-      { name: 'Abstraksi', score: Math.round(sumAbstract / count), color: 'bg-pink-500', text: 'pink-650' },
-      { name: 'Pengenalan Pola', score: Math.round(sumPattern / count), color: 'bg-amber-500', text: 'amber-600' },
-      { name: 'Desain Algoritma', score: Math.round(sumAlgo / count), color: 'bg-emerald-500', text: 'emerald-600' }
+      { name: 'Dekomposisi', score: pillar('decomposition'), color: 'bg-blue-500', text: 'blue-600' },
+      { name: 'Abstraksi', score: pillar('abstraction'), color: 'bg-pink-500', text: 'pink-650' },
+      { name: 'Pengenalan Pola', score: pillar('pattern_recognition'), color: 'bg-amber-500', text: 'amber-600' },
+      { name: 'Desain Algoritma', score: pillar('algorithm_design'), color: 'bg-emerald-500', text: 'emerald-600' }
     ];
   }, [studentGrades]);
 
-  // Compute class average CT score
-  const classAverageCT = useMemo(() => {
-    if (studentGrades.length === 0) return 0;
-    const total = studentGrades.reduce((sum, s) => sum + (s.ct || 0), 0);
-    return Math.round(total / studentGrades.length);
-  }, [studentGrades]);
+  // Rata-rata skor CT kelas (hanya yang punya data)
+  const classAverageCT = useMemo(
+    () => meanOf(studentGrades.map((s) => s.ct)) ?? 0,
+    [studentGrades],
+  );
 
-  // Compute class participation rate
+  // Partisipasi: siswa yang punya minimal satu nilai nyata
   const participationRate = useMemo(() => {
     if (studentGrades.length === 0) return 0;
-    const activeStudents = studentGrades.filter(s => s.learning > 0 || s.project > 0).length;
-    return Math.round((activeStudents / studentGrades.length) * 100);
+    const active = studentGrades.filter(
+      (s) => typeof s.learning === 'number' || typeof s.project === 'number',
+    ).length;
+    return Math.round((active / studentGrades.length) * 100);
   }, [studentGrades]);
 
   return (
@@ -358,8 +349,7 @@ export default function PenilaianAnalitik() {
                       <tr className="bg-slate-100 border-b-2 border-[#0F172A] text-left">
                         <th className="p-3 text-center">No</th>
                         <th className="p-3">Nama Lengkap</th>
-                        <th className="p-3 text-center">Pre-Test</th>
-                        <th className="p-3 text-center">Rakit HTML</th>
+                        <th className="p-3 text-center">Misi Belajar</th>
                         <th className="p-3 text-center">Proyek</th>
                         <th className="p-3 text-center">Skor CT</th>
                         <th className="p-3">Status</th>
@@ -370,10 +360,9 @@ export default function PenilaianAnalitik() {
                         <tr key={idx} className="border-b border-slate-200 bg-white hover:bg-slate-50">
                           <td className="p-3 text-center text-slate-450">{idx + 1}</td>
                           <td className="p-3 font-fredoka font-bold text-slate-800">{student.name}</td>
-                          <td className="p-3 text-center">{student.pre}</td>
-                          <td className="p-3 text-center">{student.learning}</td>
-                          <td className="p-3 text-center">{student.project || '-'}</td>
-                          <td className="p-3 text-center text-blue-600 font-bold">{student.ct}</td>
+                          <td className="p-3 text-center">{student.learning ?? '-'}</td>
+                          <td className="p-3 text-center">{student.project ?? '-'}</td>
+                          <td className="p-3 text-center text-blue-600 font-bold">{student.ct ?? '-'}</td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-lg text-[9px] border ${student.status === "Selesai"
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-250'

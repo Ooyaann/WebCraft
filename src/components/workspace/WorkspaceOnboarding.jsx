@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 
+// Animasi memakai CSS murni (kelas .onboard-* di index.css) — dependency
+// 'motion' dihapus agar bundle Workspace lebih ringan.
 export default function WorkspaceOnboarding({ isOpen, onClose }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -54,62 +55,39 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
           <div className={`relative w-full bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-center shadow-inner ${isCompact ? 'h-24 mb-2' : 'h-44 mb-4'}`}>
             {/* Grid Pattern */}
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:16px_16px]"></div>
-            
+
             {/* Animated Code Floating Elements */}
-            <motion.div 
-              animate={{ y: [0, -10, 0], rotate: [0, 5, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-              className="absolute left-6 top-6 bg-white border border-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold shadow-[1px_1px_0px_#0F172A]"
+            <div
+              className="onboard-bob absolute left-6 top-6 bg-white border border-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold shadow-[1px_1px_0px_#0F172A]"
             >
               &lt;body&gt;
-            </motion.div>
-            <motion.div 
-              animate={{ y: [0, 8, 0], rotate: [0, -4, 0] }}
-              transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 0.5 }}
-              className="absolute right-8 top-10 bg-white border border-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold shadow-[1px_1px_0px_#0F172A]"
+            </div>
+            <div
+              className="onboard-bob absolute right-8 top-10 bg-white border border-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold shadow-[1px_1px_0px_#0F172A]"
+              style={{ animationDelay: '0.5s' }}
             >
               &lt;h1&gt;Halo&lt;/h1&gt;
-            </motion.div>
-            <motion.div 
-              animate={{ y: [0, -12, 0] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-              className="absolute right-12 bottom-6 bg-white border border-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold shadow-[1px_1px_0px_#0F172A]"
+            </div>
+            <div
+              className="onboard-bob absolute right-12 bottom-6 bg-white border border-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold shadow-[1px_1px_0px_#0F172A]"
+              style={{ animationDelay: '1s' }}
             >
               color: blue;
-            </motion.div>
+            </div>
 
             {/* Central Rocket Character */}
-            <motion.div
-              animate={{ 
-                y: [0, -15, 0],
-                rotate: [0, 2, -2, 0]
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 3,
-                ease: "easeInOut"
-              }}
-              className="relative z-10 flex flex-col items-center"
-            >
+            <div className="onboard-bob relative z-10 flex flex-col items-center" style={{ animationDelay: '0.2s' }}>
               <i className="ti ti-rocket text-5xl text-blue-500" />
               <div className="w-12 h-1.5 bg-[#0F172A] opacity-20 rounded-full blur-[1px] mt-2 animate-pulse"></div>
-            </motion.div>
+            </div>
 
             {/* Sparkles */}
-            <motion.div 
-              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="absolute left-1/4 top-1/3 text-yellow-400 text-lg"
-            >
+            <div className="animate-pulse absolute left-1/4 top-1/3 text-yellow-400 text-lg">
               ✦
-            </motion.div>
-            <motion.div 
-              animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.8, 0.3] }}
-              transition={{ repeat: Infinity, duration: 2.5, delay: 0.7 }}
-              className="absolute right-1/4 bottom-1/3 text-pink-400 text-lg"
-            >
+            </div>
+            <div className="animate-pulse absolute right-1/4 bottom-1/3 text-pink-400 text-lg" style={{ animationDelay: '0.7s' }}>
               ✦
-            </motion.div>
+            </div>
           </div>
 
           <p className={`font-nunito text-slate-700 leading-relaxed font-bold ${isCompact ? 'text-[10px]' : 'text-sm'}`}>
@@ -146,42 +124,15 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
 
             {/* Center Animated Moving Pointer and Block */}
             <div className="absolute inset-0 pointer-events-none z-20">
-              {/* Floating block shadow */}
-              <motion.div
-                animate={{
-                  x: [45, 185, 185, 45],
-                  y: [60, 60, 42, 60],
-                  scale: [1, 1.1, 1, 1],
-                  opacity: [0, 1, 1, 0]
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 5,
-                  times: [0, 0.45, 0.8, 1],
-                  ease: "easeInOut"
-                }}
-                className="absolute bg-pink-100 border-2 border-pink-500 rounded-md px-2 py-1 flex items-center gap-1 shadow-md font-mono text-[9px] font-bold text-pink-800"
-              >
+              {/* Floating block being dragged */}
+              <div className="onboard-drag absolute top-0 left-0 bg-pink-100 border-2 border-pink-500 rounded-md px-2 py-1 flex items-center gap-1 shadow-md font-mono text-[9px] font-bold text-pink-800">
                 <span className="w-2 h-2 rounded bg-pink-500 inline-block"></span> h1
-              </motion.div>
+              </div>
 
               {/* Cursor finger */}
-              <motion.div
-                animate={{
-                  x: [65, 205, 205, 65],
-                  y: [75, 75, 57, 75],
-                  scale: [1, 0.9, 1, 1]
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 5,
-                  times: [0, 0.45, 0.8, 1],
-                  ease: "easeInOut"
-                }}
-                className="absolute text-slate-800"
-              >
+              <div className="onboard-cursor absolute top-0 left-0 text-slate-800">
                 <i className="ti ti-pointer text-2xl" />
-              </motion.div>
+              </div>
             </div>
 
             {/* Right: Workspace mockup */}
@@ -191,23 +142,11 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
                 <div className="h-6 bg-blue-50 border border-dashed border-blue-300 rounded-md flex items-center px-1.5 gap-1">
                   <span className="font-mono text-[8px] font-bold text-blue-600">body</span>
                 </div>
-                
-                {/* Animated slot filling */}
-                <motion.div
-                  animate={{
-                    opacity: [0, 0, 1, 0],
-                    scale: [0.9, 0.9, 1, 0.9]
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 5,
-                    times: [0, 0.45, 0.5, 0.95],
-                    ease: "easeInOut"
-                  }}
-                  className="h-6 ml-3 bg-pink-50 border border-pink-400 rounded-md flex items-center px-1.5 gap-1"
-                >
+
+                {/* Slot filling hint */}
+                <div className="animate-pulse h-6 ml-3 bg-pink-50 border border-pink-400 rounded-md flex items-center px-1.5 gap-1">
                   <span className="font-mono text-[8px] font-bold text-pink-600">h1</span>
-                </motion.div>
+                </div>
               </div>
             </div>
           </div>
@@ -234,24 +173,15 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
                 { name: "Pola", icon: "ti-bulb", color: "bg-yellow-400", textCol: "text-amber-500" },
                 { name: "Algoritma", icon: "ti-settings", color: "bg-emerald-400", textCol: "text-emerald-500" }
               ].map((ct, idx) => (
-                <motion.div
+                <div
                   key={idx}
-                  animate={{
-                    y: [0, -6, 0],
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 3,
-                    delay: idx * 0.4,
-                    ease: "easeInOut"
-                  }}
-                  className="flex-1 bg-white border-2 border-[#0F172A] rounded-xl p-1.5 flex flex-col items-center justify-center shadow-[2px_2px_0px_#0F172A] min-w-[70px]"
+                  className="onboard-bob flex-1 bg-white border-2 border-[#0F172A] rounded-xl p-1.5 flex flex-col items-center justify-center shadow-[2px_2px_0px_#0F172A] min-w-[70px]"
+                  style={{ animationDelay: `${idx * 0.4}s` }}
                 >
                   <i className={`ti ${ct.icon} text-xl mb-1 ${ct.textCol}`} />
                   <span className="font-fredoka text-[9px] font-black leading-none text-center h-5 flex items-center justify-center">{ct.name}</span>
                   <div className={`w-3 h-3 rounded-full ${ct.color} border border-[#0F172A] mt-1.5`}></div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -286,25 +216,10 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
 
             {/* Glow Check Button Simulation */}
             <div className="mt-auto flex justify-center z-10">
-              <motion.div
-                animate={{
-                  scale: [1, 1.05, 1],
-                  boxShadow: [
-                    "2px 2px 0px #0F172A",
-                    "3px 3px 0px #0F172A",
-                    "2px 2px 0px #0F172A"
-                  ]
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 2,
-                  ease: "easeInOut"
-                }}
-                className="bg-indigo-600 text-white border border-[#0F172A] px-3.5 py-1.5 rounded-xl font-fredoka text-[10px] font-bold flex items-center gap-1.5"
-              >
+              <div className="onboard-bob bg-indigo-600 text-white border border-[#0F172A] px-3.5 py-1.5 rounded-xl font-fredoka text-[10px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#0F172A]">
                 <i className="ti ti-sparkles text-yellow-300 animate-pulse" />
                 Cek Logika Kode (AI)
-              </motion.div>
+              </div>
             </div>
           </div>
 
@@ -318,11 +233,8 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        className="relative bg-white w-full max-w-lg border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] overflow-hidden flex flex-col max-h-[95vh]"
+      <div
+        className="onboard-pop relative bg-white w-full max-w-lg border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] overflow-hidden flex flex-col max-h-[95vh]"
       >
         {/* Onboarding Header */}
         <div className={`bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white border-b-4 border-[#0F172A] flex justify-between items-center ${isCompact ? 'px-3 py-2' : 'px-5 py-4'}`}>
@@ -350,17 +262,10 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
             {steps[currentStep].subtitle}
           </p>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ x: 10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -10, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {steps[currentStep].content}
-            </motion.div>
-          </AnimatePresence>
+          {/* key remount → animasi fade tiap ganti langkah */}
+          <div key={currentStep} className="onboard-fade">
+            {steps[currentStep].content}
+          </div>
         </div>
 
         {/* Onboarding Footer */}
@@ -394,7 +299,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

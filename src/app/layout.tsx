@@ -5,7 +5,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "@fontsource-variable/fredoka/index.css";
 import "@fontsource-variable/nunito/index.css";
 import "@fontsource-variable/nunito/wght-italic.css";
-import "material-symbols/rounded.css";
 import "@tabler/icons-webfont/dist/tabler-icons.min.css";
 import "./index.css";
 import AppShell from "@/components/AppShell";

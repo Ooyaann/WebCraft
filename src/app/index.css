@@ -774,3 +774,26 @@ h6 {
     font-size: 13px;
   }
 }
+
+/* Animasi onboarding (menggantikan dependency 'motion' — CSS murni) */
+@keyframes onboardBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes onboardDrag {
+  0% { transform: translate(45px, 60px) scale(1); opacity: 0; }
+  12% { opacity: 1; }
+  45% { transform: translate(185px, 60px) scale(1.1); opacity: 1; }
+  80% { transform: translate(185px, 42px) scale(1); opacity: 1; }
+  100% { transform: translate(45px, 60px) scale(1); opacity: 0; }
+}
+@keyframes onboardCursor {
+  0% { transform: translate(65px, 75px); }
+  45% { transform: translate(205px, 75px); }
+  80% { transform: translate(205px, 57px); }
+  100% { transform: translate(65px, 75px); }
+}
+@keyframes onboardFade { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes onboardPop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.onboard-bob { animation: onboardBob 3s ease-in-out infinite; }
+.onboard-drag { animation: onboardDrag 5s ease-in-out infinite; }
+.onboard-cursor { animation: onboardCursor 5s ease-in-out infinite; }
+.onboard-fade { animation: onboardFade 0.2s ease-out; }
+.onboard-pop { animation: onboardPop 0.2s ease-out; }

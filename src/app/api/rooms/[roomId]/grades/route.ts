@@ -119,13 +119,9 @@ export const GET = handler<Ctx>(async (req, ctx) => {
       statusStr = "Belum Mengerjakan";
     }
 
-    const avgDecomp = avg(ctRows.map((s) => s.decomposition));
-    const avgAbstract = avg(ctRows.map((s) => s.abstraction));
-    const avgPattern = avg(ctRows.map((s) => s.pattern_recognition));
-    const avgAlgo = avg(ctRows.map((s) => s.algorithm_design));
-    const avgCt = avg(ctRows.map((s) => s.composite_ct_score));
-
-    const preScore = lSubs.length || ctRows.length ? 70 : 0;
+    // CT: hanya angka nyata. null bila siswa belum punya skor CT terekam —
+    // tidak lagi memakai nilai learning sebagai pengganti (anti "dibikin-bikin").
+    const hasCt = ctRows.length > 0;
 
     const lSubmitted = new Set(
       lSubs.filter((s) => learningTaskIds.includes(s.task_id)).map((s) => s.task_id),
@@ -139,14 +135,14 @@ export const GET = handler<Ctx>(async (req, ctx) => {
     return {
       name: student.name,
       email: student.email,
-      pre: preScore,
-      learning: lScore,
+      // null = belum ada data nyata (bukan angka fiktif)
+      learning: lSubs.length ? lScore : null,
       project: pScore,
-      ct: avgCt > 0 ? avgCt : lScore,
-      decomposition: avgDecomp > 0 ? avgDecomp : lScore,
-      abstraction: avgAbstract > 0 ? avgAbstract : lScore,
-      pattern_recognition: avgPattern > 0 ? avgPattern : lScore,
-      algorithm_design: avgAlgo > 0 ? avgAlgo : lScore,
+      ct: hasCt ? avg(ctRows.map((s) => s.composite_ct_score)) : null,
+      decomposition: hasCt ? avg(ctRows.map((s) => s.decomposition)) : null,
+      abstraction: hasCt ? avg(ctRows.map((s) => s.abstraction)) : null,
+      pattern_recognition: hasCt ? avg(ctRows.map((s) => s.pattern_recognition)) : null,
+      algorithm_design: hasCt ? avg(ctRows.map((s) => s.algorithm_design)) : null,
       status: statusStr,
       already_done: alreadyDone,
       not_done: Math.max(0, totalTasks - alreadyDone),
