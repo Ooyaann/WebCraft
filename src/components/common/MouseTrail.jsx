@@ -1,28 +1,77 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export default function MouseTrail() {
   const cursorDotRef = useRef(null);
   const cursorRingRef = useRef(null);
+  const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
-    // 1. Hide default browser cursor
+    setIsTouch(window.matchMedia('(pointer: coarse)').matches);
+  }, []);
+
+  useEffect(() => {
+    // 1. Sparkle explosion on pointerdown/click (works on touch and non-touch)
+    const handlePointerDown = (e) => {
+      const x = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : null);
+      const y = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+      if (x == null || y == null) return;
+
+      const colors = ['#FACC15', '#3B82F6', '#10B981', '#EC4899', '#6366F1', '#FFA500'];
+      const count = 10;
+
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'click-particle';
+        
+        const size = Math.floor(Math.random() * 8) + 4; // 4px to 12px
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = Math.random() * 60 + 30; // distance
+        const dx = Math.cos(angle) * velocity;
+        const dy = Math.sin(angle) * velocity;
+
+        p.style.position = 'fixed';
+        p.style.pointerEvents = 'none';
+        p.style.zIndex = '99999';
+        p.style.width = `${size}px`;
+        p.style.height = `${size}px`;
+        p.style.backgroundColor = color;
+        p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        p.style.left = `${x - size / 2}px`;
+        p.style.top = `${y - size / 2}px`;
+        p.style.setProperty('--dx', `${dx}px`);
+        p.style.setProperty('--dy', `${dy}px`);
+        p.style.animation = 'click-particle-burst 0.55s cubic-bezier(0.1, 0.8, 0.3, 1) forwards';
+
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 550);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+
+    if (isTouch) {
+      return () => {
+        window.removeEventListener('pointerdown', handlePointerDown);
+      };
+    }
+
+    // 2. Hide default browser cursor & setup hover trail for desktop
     document.documentElement.classList.add('neo-cursor-sparkle');
     document.body.classList.add('neo-cursor-sparkle');
 
     let lastTime = 0;
     const colors = ['#FACC15', '#3B82F6', '#10B981', '#EC4899', '#6366F1'];
 
-    // Track mouse movement — ring now moves instantly with cursor (no lag)
+    // Track mouse movement
     const handleMouseMove = (e) => {
       const x = e.clientX;
       const y = e.clientY;
 
-      // Update dot cursor instantly
       if (cursorDotRef.current) {
         cursorDotRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         cursorDotRef.current.style.opacity = '1';
       }
-      // Update ring cursor instantly (no lerp — precise with cursor)
       if (cursorRingRef.current) {
         cursorRingRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         cursorRingRef.current.style.opacity = '1';
@@ -37,7 +86,7 @@ export default function MouseTrail() {
       particle.className = 'mouse-particle';
       particle.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
 
-      const size = Math.floor(Math.random() * 6) + 5; // 5-11px — smaller
+      const size = Math.floor(Math.random() * 6) + 5;
       const color = colors[Math.floor(Math.random() * colors.length)];
       const dx = (Math.random() - 0.5) * 60;
       const dy = (Math.random() - 0.5) * 60 - 30;
@@ -51,13 +100,9 @@ export default function MouseTrail() {
       particle.style.setProperty('--dy', `${dy}px`);
 
       document.body.appendChild(particle);
-
-      setTimeout(() => {
-        particle.remove();
-      }, 600);
+      setTimeout(() => particle.remove(), 600);
     };
 
-    // Hover state global event delegation
     const handleMouseOver = (e) => {
       const target = e.target;
       if (target && typeof target.closest === 'function') {
@@ -80,7 +125,6 @@ export default function MouseTrail() {
       }
     };
 
-    // Click/Active state listeners
     const handleMouseDown = () => {
       if (cursorRingRef.current) cursorRingRef.current.classList.add('cursor-clicked');
       if (cursorDotRef.current) cursorDotRef.current.classList.add('cursor-clicked');
@@ -91,7 +135,6 @@ export default function MouseTrail() {
       if (cursorDotRef.current) cursorDotRef.current.classList.remove('cursor-clicked');
     };
 
-    // Handle mouse leaving and entering window
     const handleMouseLeave = () => {
       if (cursorRingRef.current) cursorRingRef.current.style.opacity = '0';
       if (cursorDotRef.current) cursorDotRef.current.style.opacity = '0';
@@ -113,6 +156,7 @@ export default function MouseTrail() {
     return () => {
       document.documentElement.classList.remove('neo-cursor-sparkle');
       document.body.classList.remove('neo-cursor-sparkle');
+      window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseover', handleMouseOver);
       window.removeEventListener('mouseout', handleMouseOut);
@@ -121,20 +165,36 @@ export default function MouseTrail() {
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
     };
-  }, []);
+  }, [isTouch]);
 
   return (
     <>
-      <div className="neo-custom-cursor-ring" ref={cursorRingRef}>
-        <div className="neo-custom-cursor-ring-inner"></div>
-      </div>
-      <div className="neo-custom-cursor-dot" ref={cursorDotRef}>
-        <div className="neo-custom-cursor-dot-inner">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(1px 1px 0px #0F172A)' }}>
-            <path d="M1 1L18 10L10 12L8 19L1 1Z" fill="#FACC15" stroke="#0F172A" strokeWidth="2.5" strokeLinejoin="round" />
-          </svg>
-        </div>
-      </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes click-particle-burst {
+          0% {
+            transform: translate3d(0, 0, 0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate3d(var(--dx), var(--dy), 0) scale(0.2);
+            opacity: 0;
+          }
+        }
+      `}} />
+      {!isTouch && (
+        <>
+          <div className="neo-custom-cursor-ring" ref={cursorRingRef}>
+            <div className="neo-custom-cursor-ring-inner"></div>
+          </div>
+          <div className="neo-custom-cursor-dot" ref={cursorDotRef}>
+            <div className="neo-custom-cursor-dot-inner">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(1px 1px 0px #0F172A)' }}>
+                <path d="M1 1L18 10L10 12L8 19L1 1Z" fill="#FACC15" stroke="#0F172A" strokeWidth="2.5" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
