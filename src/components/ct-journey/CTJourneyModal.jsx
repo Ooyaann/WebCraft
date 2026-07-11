@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../../store/useStore';
 import { aiService } from '../../services/aiService';
 import api from '../../services/api';
@@ -472,7 +473,7 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
     return false;
   };
 
-  return (
+  return typeof window !== 'undefined' && createPortal(
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex justify-center items-center p-4 md:p-6">
       <div className="w-full max-w-4xl max-h-[92vh] bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] flex flex-col overflow-hidden relative">
         {/* Header */}
@@ -925,6 +926,7 @@ export default function CTJourneyModal({ isOpen, onClose, viewOnly = false }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
