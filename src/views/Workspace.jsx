@@ -561,7 +561,7 @@ export default function Workspace({ isSandbox = false }) {
                   type="button"
                   onClick={() => setActiveTab('preview')}
                   className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2.5 py-1 text-[10px]' : 'px-4.5 py-2 text-xs'} ${activeTab === 'preview'
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-650 text-white shadow-none translate-y-[1px]'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-none translate-y-[1px]'
                       : 'bg-white text-slate-600 hover:bg-slate-100/75'
                     }`}
                 >
