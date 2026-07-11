@@ -1,6 +1,7 @@
 'use client';
 // Port dari frontend/src/App.jsx — shell aplikasi (loader halaman, latar,
 // Sidebar, Footer). <Routes> digantikan {children} dari App Router.
+// Trigger Vercel rebuild: Sidebar widened and aligned.
 import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useStore } from '../store/useStore';
