@@ -153,7 +153,7 @@ export default function PaletBlok({ isCompact = false }) {
             {openGroups[group.id] && (
               <div className={`flex flex-col bg-[#FAFBFB] overflow-y-auto border-t-2 border-[#0F172A] custom-scrollbar ${isCompact ? 'p-1.5 gap-1 max-h-40' : 'p-3 gap-2.5 max-h-64'}`}>
                 {group.blocks.map(block => (
-                  <button
+                  <div
                     key={block.type}
                     onClick={() => handleAdd(block.type)}
                     draggable={true}
@@ -163,7 +163,7 @@ export default function PaletBlok({ isCompact = false }) {
                     }}
                     onMouseEnter={(e) => showTooltip(e, block)}
                     onMouseLeave={hideTooltip}
-                    className={`group relative w-full text-left bg-white border-2 border-slate-200 hover:border-[#0F172A] hover:-translate-y-0.5 active:translate-y-[1px] rounded-lg flex items-center transition-all cursor-grab active:cursor-grabbing hover:shadow-[2px_2px_0px_#0F172A] active:shadow-none ${isCompact ? 'p-1.5 gap-2' : 'p-2.5 gap-3'}`}
+                    className={`group relative w-full text-left bg-white border-2 border-slate-200 hover:border-[#0F172A] hover:-translate-y-0.5 active:translate-y-[1px] rounded-lg flex items-center transition-all cursor-pointer hover:shadow-[2px_2px_0px_#0F172A] active:shadow-none ${isCompact ? 'p-1.5 gap-2' : 'p-2.5 gap-3'}`}
                   >
                     <div className={`rounded-md ${group.color} flex items-center justify-center border-2 border-transparent group-hover:border-[#0F172A] shrink-0 transition-colors shadow-sm ${isCompact ? 'w-5 h-5' : 'w-8 h-8'}`}>
                       <i className={`ti ${block.icon} ${isCompact ? 'text-[10px]' : 'text-sm'}`} />
@@ -174,7 +174,18 @@ export default function PaletBlok({ isCompact = false }) {
                         {block.desc}
                       </p>}
                     </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showTooltip(e, block);
+                      }}
+                      className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-blue-500 cursor-pointer flex items-center justify-center shrink-0 z-10"
+                      title="Lihat info penjelasan"
+                    >
+                      <i className="ti ti-info-circle text-sm" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -184,11 +195,13 @@ export default function PaletBlok({ isCompact = false }) {
 
       {tooltip && createPortal(
         <div
+          onClick={hideTooltip}
           style={{ position: 'fixed', left: tooltip.x, top: tooltip.y, transform: 'translateY(-50%)' }}
-          className="z-[9999] w-52 bg-[#0F172A] text-white p-2.5 rounded-lg shadow-xl text-xs font-nunito border-2 border-white/20 pointer-events-none"
+          className="z-[9999] w-52 bg-[#0F172A] text-white p-2.5 rounded-lg shadow-xl text-xs font-nunito border-2 border-white/20 cursor-pointer pointer-events-auto select-none"
         >
           <div className="font-bold mb-1 font-mono text-[11px] text-blue-300">{tooltip.name}</div>
           <div className="leading-snug text-white/90">{tooltip.desc}</div>
+          <div className="text-[8px] text-slate-400 mt-1.5 border-t border-slate-700 pt-1 font-bold">(Ketuk untuk menutup)</div>
         </div>,
         document.body
       )}

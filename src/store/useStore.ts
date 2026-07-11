@@ -82,6 +82,7 @@ type WebcraftState = {
     targetId: string,
     relation: InsertRelation,
   ) => void;
+  moveBlockUpDown: (id: string, direction: 'up' | 'down') => void;
 };
 
 const createUniqueId = (type: string) =>
@@ -481,6 +482,52 @@ export const useStore = create<WebcraftState>()(
             ? blockToInsert.id
             : get().selectedContainerId
         }));
+      },
+      moveBlockUpDown: (id, direction) => {
+        if (id === 'body-root') return;
+        const originalAst = get().ast;
+
+        const swapInNodes = (nodes: BlockNode[]): { updated: BlockNode[]; swapped: boolean } => {
+          const index = nodes.findIndex(n => n.id === id);
+          if (index !== -1) {
+            const newNodes = [...nodes];
+            if (direction === 'up' && index > 0) {
+              const temp = newNodes[index];
+              newNodes[index] = newNodes[index - 1];
+              newNodes[index - 1] = temp;
+              return { updated: newNodes, swapped: true };
+            } else if (direction === 'down' && index < newNodes.length - 1) {
+              const temp = newNodes[index];
+              newNodes[index] = newNodes[index + 1];
+              newNodes[index + 1] = temp;
+              return { updated: newNodes, swapped: true };
+            }
+            return { updated: nodes, swapped: false };
+          }
+
+          let swapped = false;
+          const updatedNodes = nodes.map(node => {
+            if (node.children && !swapped) {
+              const res = swapInNodes(node.children);
+              if (res.swapped) {
+                swapped = true;
+                return { ...node, children: res.updated };
+              }
+            }
+            return node;
+          });
+
+          return { updated: updatedNodes, swapped };
+        };
+
+        const { updated, swapped } = swapInNodes(originalAst);
+        if (swapped) {
+          set(state => ({
+            ast: updated,
+            astPast: [...state.astPast, deepCloneAst(originalAst)].slice(-HISTORY_LIMIT),
+            astFuture: []
+          }));
+        }
       }
     }),
     {

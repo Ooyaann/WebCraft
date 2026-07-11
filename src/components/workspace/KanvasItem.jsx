@@ -7,7 +7,8 @@ export default function KanvasItem({ node }) {
     setSelectedContainerId,
     removeBlock,
     updateContent,
-    moveOrAddBlock
+    moveOrAddBlock,
+    moveBlockUpDown
   } = useStore();
 
   const [dropPreview, setDropPreview] = useState(null); // 'before' | 'after' | null
@@ -161,12 +162,34 @@ export default function KanvasItem({ node }) {
         </div>
 
         {node.id !== 'body-root' && (
-          <button
-            onClick={handleDelete}
-            className="text-[#0F172A] hover:text-red-500 font-bold p-0.5 rounded transition-colors cursor-pointer flex items-center"
-          >
-            <i className="ti ti-trash text-sm" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                moveBlockUpDown(node.id, 'up');
+              }}
+              title="Pindahkan ke atas"
+              className="text-[#0F172A] hover:bg-[#0F172A]/10 p-0.5 rounded transition-colors cursor-pointer flex items-center"
+            >
+              <i className="ti ti-chevron-up text-sm font-bold" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                moveBlockUpDown(node.id, 'down');
+              }}
+              title="Pindahkan ke bawah"
+              className="text-[#0F172A] hover:bg-[#0F172A]/10 p-0.5 rounded transition-colors cursor-pointer flex items-center"
+            >
+              <i className="ti ti-chevron-down text-sm font-bold" />
+            </button>
+            <button
+              onClick={handleDelete}
+              className="text-[#0F172A] hover:text-red-500 font-bold p-0.5 rounded transition-colors cursor-pointer flex items-center"
+            >
+              <i className="ti ti-trash text-sm" />
+            </button>
+          </div>
         )}
       </div>
 
