@@ -84,7 +84,7 @@ export default function AppShell({ children }) {
   const isWorkspace = pathname.startsWith('/workspace/') || pathname === '/sandbox';
 
   return (
-    <div className="min-h-screen bg-transparent text-[#0F172A] flex flex-col lg:flex-row font-nunito selection:bg-[#FACC15] neo-cursor-sparkle">
+    <div className="min-h-screen bg-transparent text-[#0F172A] flex flex-col lg:flex-row font-nunito selection:bg-[#FACC15]">
       {/* Dynamic Page Loader Splash Screen */}
       {showLoader && (
         <div

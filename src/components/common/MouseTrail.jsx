@@ -3,10 +3,25 @@ import React, { useEffect, useRef, useState } from 'react';
 export default function MouseTrail() {
   const cursorDotRef = useRef(null);
   const cursorRingRef = useRef(null);
-  const [isTouch, setIsTouch] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    setIsTouch(window.matchMedia('(pointer: coarse)').matches);
+    // 1. Deteksi awal: Jika pointer utama adalah 'fine' (mouse/touchpad), aktifkan kursor custom
+    const matchesFine = window.matchMedia('(pointer: fine)').matches;
+    if (matchesFine) {
+      setIsDesktop(true);
+      return;
+    }
+
+    // 2. Deteksi dinamis: Jika ada pergerakan mouse (pada laptop touchscreen hybrid)
+    const onMouseMove = () => {
+      setIsDesktop(true);
+      window.removeEventListener('mousemove', onMouseMove);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+    };
   }, []);
 
   useEffect(() => {
@@ -50,7 +65,7 @@ export default function MouseTrail() {
 
     window.addEventListener('pointerdown', handlePointerDown, { passive: true });
 
-    if (isTouch) {
+    if (!isDesktop) {
       return () => {
         window.removeEventListener('pointerdown', handlePointerDown);
       };
@@ -165,7 +180,7 @@ export default function MouseTrail() {
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
     };
-  }, [isTouch]);
+  }, [isDesktop]);
 
   return (
     <>
@@ -181,7 +196,7 @@ export default function MouseTrail() {
           }
         }
       `}} />
-      {!isTouch && (
+      {isDesktop && (
         <>
           <div className="neo-custom-cursor-ring" ref={cursorRingRef}>
             <div className="neo-custom-cursor-ring-inner"></div>
