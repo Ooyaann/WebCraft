@@ -144,9 +144,8 @@ export default function BerandaGuest() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              Challenge Based Learning
+              Challenge Based Learning!
             </span>
-            !
           </h2>
 
           <p className="font-nunito text-xs md:text-sm font-bold text-[#0F172A] leading-relaxed bg-[#FFFBEB] p-4 rounded-2xl border-2 border-[#0F172A] shadow-[3px_3px_0px_#0F172A]">
