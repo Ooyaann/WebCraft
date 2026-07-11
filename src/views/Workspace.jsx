@@ -71,6 +71,25 @@ export default function Workspace({ isSandbox = false }) {
     return hideOnboarding !== 'true';
   });
 
+  const [showMissionPopup, setShowMissionPopup] = useState(false);
+
+  // Open mission popup on mount or when onboarding closes
+  useEffect(() => {
+    if (isCompact && activeLevelConfig?.misi && !isSandbox) {
+      const hideOnboarding = localStorage.getItem('webcraft_hide_onboarding') === 'true';
+      if (hideOnboarding) {
+        setShowMissionPopup(true);
+      }
+    }
+  }, [isCompact, activeLevelConfig, isSandbox]);
+
+  const handleOnboardingClose = () => {
+    setIsOnboardingOpen(false);
+    if (isCompact && activeLevelConfig?.misi && !isSandbox) {
+      setShowMissionPopup(true);
+    }
+  };
+
   // Reflection/Post-coding states
   const [showReflectionModal, setShowReflectionModal] = useState(false);
   const [reflectionAnswer, setReflectionAnswer] = useState('');
@@ -417,40 +436,40 @@ export default function Workspace({ isSandbox = false }) {
       )}
 
       {/* Top Toolbar Navigation */}
-      <header className={`w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex justify-between items-center border-b-4 border-[#0F172A] shrink-0 shadow-md ${isCompact ? 'px-3 py-1.5' : 'px-6 py-3.5'}`}>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (isSandbox) {
-                navigate('/');
-              } else {
-                navigate('/ruang-belajar');
-              }
-            }}
-            className="p-1 border-2 border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer flex items-center justify-center"
-          >
-            <i className={`ti ti-arrow-left ${isCompact ? 'text-sm' : 'text-base'}`} />
-          </button>
-          <div className="text-left leading-none">
-            <h2 className={`font-fredoka font-bold text-white tracking-tight ${isCompact ? 'text-xs' : 'text-base'}`}>
-              Misi: {activeLevelConfig?.judul || 'Memuat...'}
-            </h2>
-            {!isCompact && <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Ruang Praktik Mandiri</span>}
+      {!isCompact && (
+        <header className="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex justify-between items-center border-b-4 border-[#0F172A] shrink-0 shadow-md px-6 py-3.5">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (isSandbox) {
+                  navigate('/');
+                } else {
+                  navigate('/ruang-belajar');
+                }
+              }}
+              className="p-1 border-2 border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer flex items-center justify-center"
+            >
+              <i className="ti ti-arrow-left text-base" />
+            </button>
+            <div className="text-left leading-none">
+              <h2 className="font-fredoka font-bold text-white tracking-tight text-base">
+                Misi: {activeLevelConfig?.judul || 'Memuat...'}
+              </h2>
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Ruang Praktik Mandiri</span>
+            </div>
           </div>
-        </div>
 
-        <div className={`flex items-center ${isCompact ? 'gap-1.5' : 'gap-3'}`}>
-          <button
-            type="button"
-            onClick={() => setIsOnboardingOpen(true)}
-            title="Buka Panduan Penggunaan"
-            className={`border-2 border-indigo-400 bg-indigo-950 hover:bg-indigo-900 text-indigo-200 hover:text-white font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_rgba(255,255,255,0.15)] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}
-          >
-            <i className={`ti ti-help ${isCompact ? 'text-xs' : 'text-sm'} animate-pulse`} />
-            {!isCompact && <span className="hidden sm:inline">Panduan</span>}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsOnboardingOpen(true)}
+              title="Buka Panduan Penggunaan"
+              className="border-2 border-indigo-400 bg-indigo-950 hover:bg-indigo-900 text-indigo-200 hover:text-white font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_rgba(255,255,255,0.15)] hover:-translate-y-0.5 active:translate-y-[0.5px] px-3 py-1.5 text-xs"
+            >
+              <i className="ti ti-help text-sm animate-pulse" />
+              <span className="hidden sm:inline">Panduan</span>
+            </button>
 
-          {!isCompact && (
             <button
               type="button"
               onClick={() => setShowPreview(prev => !prev)}
@@ -461,39 +480,39 @@ export default function Workspace({ isSandbox = false }) {
               <i className={`ti ${showPreview ? 'ti-layout-sidebar-right-collapse' : 'ti-layout-sidebar-right-expand'} text-sm`} />
               <span className="hidden sm:inline">{showPreview ? 'Sembunyikan Preview' : 'Tampilkan Preview'}</span>
             </button>
-          )}
 
-          <div className="flex items-center gap-1">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              title="Urungkan (Ctrl+Z)"
-              className={`border-2 border-slate-700 rounded-lg transition-all cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent ${isCompact ? 'p-0.5' : 'p-1.5'}`}
-            >
-              <i className={`ti ti-arrow-back-up ${isCompact ? 'text-sm' : 'text-base'}`} />
-            </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              title="Ulangi (Ctrl+Y)"
-              className={`border-2 border-slate-700 rounded-lg transition-all cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent ${isCompact ? 'p-0.5' : 'p-1.5'}`}
-            >
-              <i className={`ti ti-arrow-forward-up ${isCompact ? 'text-sm' : 'text-base'}`} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                title="Urungkan (Ctrl+Z)"
+                className="border-2 border-slate-700 rounded-lg transition-all cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent p-1.5"
+              >
+                <i className="ti ti-arrow-back-up text-base" />
+              </button>
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                title="Ulangi (Ctrl+Y)"
+                className="border-2 border-slate-700 rounded-lg transition-all cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent p-1.5"
+              >
+                <i className="ti ti-arrow-forward-up text-base" />
+              </button>
+            </div>
+            <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-[#0F172A] border-2 border-[#0F172A] font-fredoka font-black rounded-lg shadow-[2px_2px_0px_#0F172A] flex items-center gap-1 shrink-0 px-3.5 py-1.5 text-xs">
+              <i className="ti ti-rocket text-sm animate-bounce-slow" />
+              Fase Action
+            </span>
           </div>
-          <span className={`bg-gradient-to-r from-amber-400 to-amber-500 text-[#0F172A] border-2 border-[#0F172A] font-fredoka font-black rounded-lg shadow-[2px_2px_0px_#0F172A] flex items-center gap-1 shrink-0 ${isCompact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1.5 text-xs'}`}>
-            <i className={`ti ti-rocket ${isCompact ? 'text-[10px]' : 'text-sm'} animate-bounce-slow`} />
-            Fase Action
-          </span>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Workspace Split Layout (3 Panels) */}
       <div className="flex-1 w-full flex flex-col overflow-hidden">
         
-        {/* Mission Instructions Panel */}
-        {activeLevelConfig?.misi && (
-          <div className={`border-b-4 border-[#0F172A] flex items-center gap-2 shrink-0 ${isCompact ? 'px-2.5 py-1' : 'px-4 py-3'} ${
+        {/* Mission Instructions Panel (only if not compact mode) */}
+        {!isCompact && activeLevelConfig?.misi && (
+          <div className={`border-b-4 border-[#0F172A] flex items-center gap-2 shrink-0 px-4 py-3 ${
             isSandbox 
               ? 'bg-gradient-to-r from-amber-50 via-amber-50/50 to-yellow-50/30' 
               : 'bg-gradient-to-r from-indigo-50 via-indigo-50/50 to-blue-50/30'
@@ -531,43 +550,113 @@ export default function Workspace({ isSandbox = false }) {
 
           {/* Middle Panel (Editor: Kanvas & Code & Preview) */}
           <div className="flex-1 h-full flex flex-col overflow-hidden bg-white min-w-0">
-            <div className={`bg-slate-50 border-b-4 border-[#0F172A] flex justify-start shrink-0 ${isCompact ? 'p-1 gap-1.5' : 'p-2.5 gap-2.5'}`}>
-              <button
-                type="button"
-                onClick={() => setActiveTab('kanvas')}
-                className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2.5 py-1 text-[10px]' : 'px-4.5 py-2 text-xs'} ${activeTab === 'kanvas'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-none translate-y-[1px]'
-                    : 'bg-white text-slate-600 hover:bg-slate-100/75'
-                  }`}
-              >
-                <i className={`ti ti-layout-grid ${isCompact ? 'text-xs' : 'text-sm'}`} />
-                Kanvas Rakit
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('code')}
-                className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2.5 py-1 text-[10px]' : 'px-4.5 py-2 text-xs'} ${activeTab === 'code'
-                    ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-none translate-y-[1px]'
-                    : 'bg-white text-slate-600 hover:bg-slate-100/75'
-                  }`}
-              >
-                <i className={`ti ti-code ${isCompact ? 'text-xs' : 'text-sm'}`} />
-                Kode HTML
-              </button>
-
-              {isCompact && (
+            <div className={`bg-slate-50 border-b-4 border-[#0F172A] flex justify-between items-center shrink-0 ${isCompact ? 'p-1 gap-1' : 'p-2.5 gap-2.5'}`}>
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('preview')}
-                  className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2.5 py-1 text-[10px]' : 'px-4.5 py-2 text-xs'} ${activeTab === 'preview'
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-none translate-y-[1px]'
+                  onClick={() => setActiveTab('kanvas')}
+                  className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-4.5 py-2 text-xs'} ${activeTab === 'kanvas'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-none translate-y-[1px]'
                       : 'bg-white text-slate-600 hover:bg-slate-100/75'
                     }`}
                 >
-                  <i className={`ti ti-eye ${isCompact ? 'text-xs' : 'text-sm'}`} />
-                  Live Preview
+                  <i className={`ti ti-layout-grid ${isCompact ? 'text-xs' : 'text-sm'}`} />
+                  {(!isCompact || activeTab === 'kanvas') && <span>Kanvas</span>}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('code')}
+                  className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] ${isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-4.5 py-2 text-xs'} ${activeTab === 'code'
+                      ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-none translate-y-[1px]'
+                      : 'bg-white text-slate-600 hover:bg-slate-100/75'
+                    }`}
+                >
+                  <i className={`ti ti-code ${isCompact ? 'text-xs' : 'text-sm'}`} />
+                  {(!isCompact || activeTab === 'code') && <span>Kode</span>}
+                </button>
+
+                {isCompact && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('preview')}
+                    className={`border-2 border-[#0F172A] font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] px-2 py-0.5 text-[10px] ${activeTab === 'preview'
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-none translate-y-[1px]'
+                        : 'bg-white text-slate-600 hover:bg-slate-100/75'
+                      }`}
+                  >
+                    <i className="ti ti-eye text-xs" />
+                    {activeTab === 'preview' && <span>Preview</span>}
+                  </button>
+                )}
+              </div>
+
+              {isCompact && (
+                <div className="flex items-center gap-1 ml-auto">
+                  {/* Action Phase Badge (Dot/Minimal version) */}
+                  <span className="h-5.5 w-5.5 rounded bg-amber-400 border-2 border-[#0F172A] flex items-center justify-center shadow-[1px_1px_0px_#0F172A]" title="Fase Action">
+                    <i className="ti ti-rocket text-[10px] text-[#0F172A]" />
+                  </span>
+
+                  {/* Undo Button */}
+                  <button
+                    onClick={undo}
+                    disabled={!canUndo}
+                    title="Urungkan (Ctrl+Z)"
+                    className="h-5.5 w-5.5 border-2 border-[#0F172A] rounded bg-white text-[#0F172A] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-all active:translate-y-[0.5px]"
+                  >
+                    <i className="ti ti-arrow-back-up text-xs font-bold" />
+                  </button>
+
+                  {/* Redo Button */}
+                  <button
+                    onClick={redo}
+                    disabled={!canRedo}
+                    title="Ulangi (Ctrl+Y)"
+                    className="h-5.5 w-5.5 border-2 border-[#0F172A] rounded bg-white text-[#0F172A] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-all active:translate-y-[0.5px]"
+                  >
+                    <i className="ti ti-arrow-forward-up text-xs font-bold" />
+                  </button>
+
+                  {/* Misi / Challenge Info Button */}
+                  {!isSandbox && activeLevelConfig?.misi && (
+                    <button
+                      type="button"
+                      onClick={() => setShowMissionPopup(true)}
+                      title="Lihat Misi Pembelajaran"
+                      className="h-5.5 w-5.5 border-2 border-blue-600 rounded bg-blue-50 text-blue-650 hover:bg-blue-100 flex items-center justify-center cursor-pointer transition-all active:translate-y-[0.5px] shadow-[1px_1px_0px_rgba(59,130,246,0.2)] animate-pulse"
+                    >
+                      <i className="ti ti-target text-xs font-bold" />
+                    </button>
+                  )}
+
+                  {/* Help Onboarding Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsOnboardingOpen(true)}
+                    title="Bantuan Panduan"
+                    className="h-5.5 w-5.5 border-2 border-indigo-500 rounded bg-indigo-50 text-indigo-650 hover:bg-indigo-100 flex items-center justify-center cursor-pointer transition-all active:translate-y-[0.5px]"
+                  >
+                    <i className="ti ti-help text-xs font-bold" />
+                  </button>
+
+                  {/* Divider line */}
+                  <span className="w-[1.5px] h-4 bg-slate-300 mx-0.5"></span>
+
+                  {/* Exit / Back Button */}
+                  <button
+                    onClick={() => {
+                      if (confirm("Apakah Anda yakin ingin keluar? Progres koding yang belum disubmit mungkin hilang.")) {
+                        navigate(isSandbox ? '/' : '/ruang-belajar');
+                      }
+                    }}
+                    title="Keluar dari Workspace"
+                    className="px-2 py-0.5 border-2 border-red-500 rounded bg-red-50 text-red-650 hover:bg-red-100 flex items-center justify-center gap-0.5 cursor-pointer font-fredoka text-[9.5px] font-bold shadow-[1px_1px_0px_rgba(239,68,68,0.1)] active:translate-y-[0.5px]"
+                  >
+                    <i className="ti ti-arrow-left text-[10px]" />
+                    Keluar
+                  </button>
+                </div>
               )}
             </div>
 
@@ -617,42 +706,62 @@ export default function Workspace({ isSandbox = false }) {
           </div>
 
         {/* Global Action Footer Bar */}
-        <div className={`bg-white border-t-4 border-[#0F172A] flex flex-col sm:flex-row justify-between items-center shrink-0 ${isCompact ? 'p-1.5 gap-1.5' : 'p-4 gap-4'}`}>
-          <div className="flex items-center gap-3 text-left w-full sm:w-auto">
-            <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-2 border-[#0F172A] px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-[2px_2px_0px_#0F172A]">
-              <i className="ti ti-history text-white text-xs animate-spin-slow" />
-              <span className="font-fredoka text-[10px] font-bold">Percobaan: {attemptHistory.length}x</span>
-            </div>
+        <div className={`bg-white border-t-4 border-[#0F172A] flex justify-between items-center shrink-0 ${isCompact ? 'p-1 px-2 gap-2 flex-row' : 'p-4 gap-4 flex-col sm:flex-row'}`}>
+          <div className="flex items-center gap-2 sm:gap-3 text-left w-auto">
+            {isCompact ? (
+              <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-2 border-[#0F172A] px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-[1.5px_1.5px_0px_#0F172A]">
+                <i className="ti ti-history text-white text-[10px]" />
+                <span className="font-fredoka text-[9px] font-bold">Uji: {attemptHistory.length}x</span>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-2 border-[#0F172A] px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-[2px_2px_0px_#0F172A]">
+                <i className="ti ti-history text-white text-xs animate-spin-slow" />
+                <span className="font-fredoka text-[10px] font-bold">Percobaan: {attemptHistory.length}x</span>
+              </div>
+            )}
 
             {showValidationResult && (
-              <div className={`px-3.5 py-1.5 rounded-xl border-2 border-[#0F172A] font-fredoka text-[10px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#0F172A] ${
-                isSuccess 
-                  ? 'bg-gradient-to-r from-emerald-450 to-teal-500 text-white bg-emerald-500' 
-                  : 'bg-gradient-to-r from-red-50 to-rose-100/50 text-red-700'
-              }`}>
-                <i className={`ti ${isSuccess ? 'ti-circle-check text-white text-xs animate-bounce' : 'ti-alert-triangle text-red-500 text-xs animate-pulse'}`} />
-                <span>
-                  {isSuccess
-                    ? 'Luar biasa! Struktur kriteria misi telah terpenuhi!'
-                    : `${validationErrors.length} kesalahan ditemukan. Evaluasi kembali!`}
-                </span>
-              </div>
+              isCompact ? (
+                <div className={`px-2 py-0.5 rounded-lg border-2 border-[#0F172A] font-fredoka text-[9px] font-bold flex items-center gap-1 shadow-[1.5px_1.5px_0px_#0F172A] ${
+                  isSuccess 
+                    ? 'bg-emerald-500 text-white' 
+                    : 'bg-red-500 text-white'
+                }`}>
+                  <i className={`ti ${isSuccess ? 'ti-circle-check text-xs' : 'ti-alert-triangle text-xs'}`} />
+                  <span>{isSuccess ? 'Tuntas!' : `Kesalahan (${validationErrors.length})`}</span>
+                </div>
+              ) : (
+                <div className={`px-3.5 py-1.5 rounded-xl border-2 border-[#0F172A] font-fredoka text-[10px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#0F172A] ${
+                  isSuccess 
+                    ? 'bg-gradient-to-r from-emerald-450 to-teal-500 text-white bg-emerald-500' 
+                    : 'bg-gradient-to-r from-red-50 to-rose-100/50 text-red-700'
+                }`}>
+                  <i className={`ti ${isSuccess ? 'ti-circle-check text-white text-xs animate-bounce' : 'ti-alert-triangle text-red-500 text-xs animate-pulse'}`} />
+                  <span>
+                    {isSuccess
+                      ? 'Luar biasa! Struktur kriteria misi telah terpenuhi!'
+                      : `${validationErrors.length} kesalahan ditemukan. Evaluasi kembali!`}
+                  </span>
+                </div>
+              )
             )}
           </div>
 
           {isSandbox ? (
-            <div className="flex gap-3 w-full sm:w-auto shrink-0">
+            <div className="flex gap-2 w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm("Apakah Anda yakin ingin mengatur ulang kanvas dan mulai dari awal?")) {
+                  if (confirm(isCompact ? "Reset kanvas?" : "Apakah Anda yakin ingin mengatur ulang kanvas dan mulai dari awal?")) {
                     resetWorkspace();
                   }
                 }}
-                className="flex-1 sm:flex-initial px-5 py-2.5 bg-white text-slate-700 border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs"
+                className={`bg-white text-slate-700 border-2 border-[#0F172A] font-fredoka font-bold shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  isCompact ? 'px-2.5 py-1 text-[9.5px] rounded-lg' : 'px-5 py-2.5 rounded-xl text-xs'
+                }`}
               >
-                <i className="ti ti-refresh text-sm" />
-                Atur Ulang Kanvas
+                <i className="ti ti-refresh" />
+                {isCompact ? 'Reset' : 'Atur Ulang Kanvas'}
               </button>
 
               <button
@@ -660,33 +769,35 @@ export default function Workspace({ isSandbox = false }) {
                 onClick={() => {
                   const codeStr = toFormattedCode(ast);
                   navigator.clipboard.writeText(codeStr);
-                  alert("Kode HTML berhasil disalin ke clipboard!");
+                  alert(isCompact ? "Kode disalin!" : "Kode HTML berhasil disalin ke clipboard!");
                 }}
-                className="flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:shadow-[4px_4px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs"
+                className={`bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-2 border-[#0F172A] font-fredoka font-bold shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  isCompact ? 'px-2.5 py-1 text-[9.5px] rounded-lg' : 'px-6 py-2.5 rounded-xl text-xs'
+                }`}
               >
-                <i className="ti ti-copy text-sm" />
-                Salin Kode HTML
+                <i className="ti ti-copy" />
+                {isCompact ? 'Salin' : 'Salin Kode HTML'}
               </button>
             </div>
           ) : (
-            <div className="flex gap-3 w-full sm:w-auto shrink-0">
+            <div className="flex gap-2 w-auto shrink-0">
               <button
                 type="button"
                 onClick={handleValidate}
                 disabled={isValidating}
-                className={`flex-1 sm:flex-initial px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white border-2 border-[#0F172A] font-fredoka font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 text-xs ${
-                  isValidating ? 'opacity-70 cursor-not-allowed shadow-none' : ''
-                }`}
+                className={`bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white border-2 border-[#0F172A] font-fredoka font-bold shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  isCompact ? 'px-2.5 py-1 text-[9.5px] rounded-lg' : 'px-5 py-2.5 rounded-xl text-xs'
+                } ${isValidating ? 'opacity-70 cursor-not-allowed shadow-none' : ''}`}
               >
                 {isValidating ? (
                   <>
-                    <i className="ti ti-loader animate-spin text-sm" />
-                    AI Sedang Memeriksa...
+                    <i className="ti ti-loader animate-spin" />
+                    {isCompact ? 'Proses...' : 'AI Sedang Memeriksa...'}
                   </>
                 ) : (
                   <>
-                    <i className="ti ti-sparkles text-yellow-300 text-sm animate-pulse" />
-                    Cek Logika Kode (AI)
+                    <i className="ti ti-sparkles text-yellow-300 animate-pulse" />
+                    {isCompact ? 'Uji AI' : 'Cek Logika Kode (AI)'}
                   </>
                 )}
               </button>
@@ -694,11 +805,12 @@ export default function Workspace({ isSandbox = false }) {
               <button
                 onClick={handleSubmitChallenge}
                 disabled={!isSuccess}
-                className={`flex-1 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-nunito font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:shadow-[4px_4px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all flex items-center justify-center gap-1.5 border-2 border-[#0F172A] text-xs ${!isSuccess ? 'opacity-40 cursor-not-allowed transform-none hover:translate-y-0 shadow-none hover:shadow-none' : ''
-                  }`}
+                className={`bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-2 border-[#0F172A] font-fredoka font-bold shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  isCompact ? 'px-2.5 py-1 text-[9.5px] rounded-lg' : 'px-6 py-2.5 rounded-xl text-xs'
+                } ${!isSuccess ? 'opacity-40 cursor-not-allowed transform-none hover:translate-y-0 shadow-none' : ''}`}
               >
-                <i className="ti ti-send text-base" />
-                Kirim Hasil Misi
+                <i className="ti ti-send" />
+                {isCompact ? 'Kirim' : 'Kirim Hasil Misi'}
               </button>
             </div>
           )}
@@ -828,10 +940,64 @@ export default function Workspace({ isSandbox = false }) {
         document.body
       )}
 
+      {/* Mission Information Popup Modal for Mobile Landscape */}
+      {showMissionPopup && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="relative bg-white w-full max-w-md border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-650 text-white px-5 py-4 border-b-4 border-[#0F172A] flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <i className="ti ti-target text-xl text-yellow-350 animate-pulse animate-duration-1000" />
+                <h3 className="font-fredoka text-sm font-black tracking-wide leading-none text-white">Misi Pembelajaran</h3>
+              </div>
+              <button
+                onClick={() => setShowMissionPopup(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <i className="ti ti-x text-sm" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto text-left flex flex-col gap-4">
+              <div>
+                <span className="font-fredoka text-[9px] font-black uppercase tracking-widest text-indigo-600 block mb-1">Misi Modul</span>
+                <h4 className="font-fredoka text-sm font-bold text-slate-800">
+                  {activeLevelConfig?.judul || 'Misi Coding Web'}
+                </h4>
+              </div>
+
+              <div className="border-2 border-[#0F172A] rounded-xl p-3.5 bg-indigo-50/40 shadow-[2px_2px_0px_rgba(0,0,0,0.05)]">
+                <span className="font-fredoka text-[9px] font-black uppercase tracking-widest text-indigo-500 block mb-1">Tantangan Praktik</span>
+                <p className="font-nunito text-xs text-slate-700 font-extrabold leading-relaxed whitespace-pre-line">
+                  {activeLevelConfig?.misi}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5 pt-1">
+                <span className="font-fredoka text-[9px] font-black uppercase tracking-widest text-slate-500 block">Petunjuk Pengerjaan</span>
+                <div className="flex items-start gap-1.5 text-xs font-nunito font-bold text-slate-600">
+                  <i className="ti ti-info-circle text-blue-500 mt-0.5" />
+                  <span>Rakit blok HTML di kanvas koding lalu uji dan kirim hasilnya! Anda bisa menekan tombol target (<i className="ti ti-target inline text-blue-600" />) untuk melihat misi ini lagi.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border-t-4 border-[#0F172A] p-4 flex justify-end shrink-0">
+              <button
+                onClick={() => setShowMissionPopup(false)}
+                className="px-5 py-2 bg-blue-600 text-white border-2 border-[#0F172A] rounded-xl font-fredoka text-xs font-bold shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[1px] hover:shadow-[3px_3px_0px_#0F172A] active:shadow-[1px_1px_0px_#0F172A] cursor-pointer transition-all"
+              >
+                Mulai Misi!
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Workspace Onboarding Guide Tutorial Modal */}
       <WorkspaceOnboarding 
         isOpen={isOnboardingOpen} 
-        onClose={() => setIsOnboardingOpen(false)} 
+        onClose={handleOnboardingClose} 
       />
     </div>
   );
