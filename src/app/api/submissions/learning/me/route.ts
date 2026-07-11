@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { learningSubmissions, learningTasks } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { handler } from "@/lib/http";
+import { KKM } from "@/lib/scoring";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 // Format "%Y-%m-%d %H:%M" (UTC) seperti strftime di submissions.py
@@ -53,8 +54,13 @@ export const GET = handler(async (req) => {
       levelTitle: task?.judul ?? "Misi Belajar",
       date: formatDate(sub.submitted_at),
       accuracy: sub.accuracy_score,
+      efficiency: sub.efficiency_score,
       attempts: sub.attempt_count,
       ctScore: sub.final_score,
+      // Transparansi ketuntasan (KKM seragam, lihat src/lib/scoring.ts)
+      kkm: KKM,
+      tuntas: sub.final_score >= KKM,
+      is_remedial: sub.is_remedial,
       ct_post_score: sub.ct_post_score_json,
       reflection_answers: sub.reflection_answers_json,
       ast: (lastSnapshot?.["ast"] as unknown[] | undefined) ?? [],

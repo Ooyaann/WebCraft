@@ -129,7 +129,9 @@ export const GET = handler(async (req) => {
     .select({
       sub: projectSubmissions,
       taskJudul: projectTasks.judul,
+      taskRubrik: projectTasks.rubrik_json,
       roomId: pertemuan.room_id,
+      roomName: rooms.name,
       studentName: users.name,
     })
     .from(projectSubmissions)
@@ -140,11 +142,14 @@ export const GET = handler(async (req) => {
     .where(eq(rooms.guru_id, user.id));
 
   return NextResponse.json(
-    rows.map(({ sub, taskJudul, roomId, studentName }) => ({
+    rows.map(({ sub, taskJudul, taskRubrik, roomId, roomName, studentName }) => ({
       id: sub.id,
       task_id: sub.task_id,
       task_title: taskJudul,
+      // Rubrik task (nama kriteria + bobot) — dasar penilaian terbobot di UI guru
+      rubrik: taskRubrik,
       room_id: roomId,
+      room_name: roomName,
       siswa_id: sub.siswa_id,
       student_name: studentName,
       final_ast: sub.final_ast_json,

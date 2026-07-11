@@ -164,24 +164,27 @@ describe("alur pengerjaan siswa", () => {
     expect(res.status).toBe(403);
   });
 
-  it("skor dihitung ulang server: error palsu dari klien diabaikan", async () => {
+  it("skor dihitung ulang server: error palsu diabaikan → gagal (50 < KKM)", async () => {
     const { POST } = await import("@/app/api/submissions/learning/route");
     // AST rusak (hanya body kosong) tapi klien mengklaim errors: []
     const res = await POST(
       jsonReq("/api/submissions/learning", "POST", {
         task_id: learningTaskId,
-        ast_snapshots: [{ attempt: 1, ast: [{ type: "body", children: [] }], errors: [] }],
-        attempt_count: 1,
+        ast_snapshots: [{ attempt: 5, ast: [{ type: "body", children: [] }], errors: [] }],
+        attempt_count: 5,
       }, siswaToken),
       {},
     );
     expect(res.status).toBe(201);
     const data = await res.json();
-    // 4 aturan gagal (h1, body>h1, p, body>p) → 100 - 4*15 = 40
+    // 4 aturan gagal (h1, body>h1, p, body>p) → 100 - 4*15 = 40; efisiensi 5x = 60
     expect(data.accuracy).toBe(40);
+    expect(data.efficiency).toBe(60);
+    expect(data.final_score).toBe(50);
+    expect(data.tuntas).toBe(false);
   });
 
-  it("submit learning valid → skor terhitung (2 percobaan, tanpa error = 95)", async () => {
+  it("pengiriman ulang misi gagal = remidi: nilai dibatasi maks KKM 70", async () => {
     const { POST } = await import("@/app/api/submissions/learning/route");
     const validAst = [{
       type: "body",
@@ -204,18 +207,38 @@ describe("alur pengerjaan siswa", () => {
     );
     expect(res.status).toBe(201);
     const data = await res.json();
+    // Skor mentah (100+90)/2 = 95, tapi remidi dibatasi KKM
     expect(data.accuracy).toBe(100);
     expect(data.efficiency).toBe(90);
-    expect(data.final_score).toBe(95);
+    expect(data.is_remedial).toBe(true);
+    expect(data.final_score).toBe(70);
+    expect(data.tuntas).toBe(true);
   });
 
-  it("learning/me memuat pertemuan_id & tag feedback", async () => {
+  it("misi yang sudah tuntas ditolak dikirim ulang (400)", async () => {
+    const { POST } = await import("@/app/api/submissions/learning/route");
+    const res = await POST(
+      jsonReq("/api/submissions/learning", "POST", {
+        task_id: learningTaskId,
+        ast_snapshots: [{ attempt: 1, ast: [{ type: "body" }], errors: [] }],
+        attempt_count: 1,
+      }, siswaToken),
+      {},
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("learning/me memuat pertemuan_id, status remidi & transparansi nilai", async () => {
     const { GET } = await import("@/app/api/submissions/learning/me/route");
     const res = await GET(getReq("/api/submissions/learning/me", siswaToken), {});
     const list = await res.json();
     expect(list).toHaveLength(1);
     expect(list[0].pertemuan_id).toBe(pertemuanId);
-    expect(list[0].feedbackTags).toEqual(["Sangat Baik"]);
+    expect(list[0].feedbackTags).toEqual(["Baik"]); // 70 → kategori Baik
+    expect(list[0].is_remedial).toBe(true);
+    expect(list[0].efficiency).toBe(90);
+    expect(list[0].kkm).toBe(70);
+    expect(list[0].tuntas).toBe(true);
   });
 
   it("submit project → saran AI offline tersimpan", async () => {
@@ -418,7 +441,7 @@ describe("rekap & AI offline", () => {
     );
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.ct_class_average).toBe(95);
+    expect(data.ct_class_average).toBe(70); // nilai remidi (capped KKM)
     expect(Array.isArray(data.error_heatmap)).toBe(true);
   });
 });

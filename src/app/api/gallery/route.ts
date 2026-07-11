@@ -136,6 +136,8 @@ export const GET = handler(async (req) => {
       room_id: roomId,
       room_name: roomName,
       ai_feedback: aiFeedback,
+      // graded membedakan "belum dinilai" dari nilai 0 sungguhan
+      graded: sub.teacher_score !== null,
       score: sub.teacher_score ?? 0,
     });
   }

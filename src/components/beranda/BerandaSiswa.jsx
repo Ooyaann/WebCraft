@@ -31,12 +31,15 @@ export default function BerandaSiswa({ user }) {
     }
   }, [activeRoom]);
 
-  // Sembunyikan pertemuan yang sudah selesai — aturan sama dengan RoomDetail:
-  // selesai = ada submission belajar ATAU proyek dengan pertemuan_id ini.
+  // Sembunyikan pertemuan yang sudah TUNTAS — aturan sama dengan RoomDetail:
+  // misi belajar di bawah KKM (remidi) tetap tampil agar dikerjakan ulang.
   const completedIds = new Set([
-    ...submissions.map((s) => s.pertemuan_id).filter(Boolean),
+    ...submissions.filter((s) => s.tuntas !== false).map((s) => s.pertemuan_id).filter(Boolean),
     ...projectSubmissions.map((p) => p.pertemuan_id).filter(Boolean),
   ]);
+  const remedialIds = new Set(
+    submissions.filter((s) => s.tuntas === false).map((s) => s.pertemuan_id).filter(Boolean),
+  );
   const activeTasks = tasks
     .filter((t) => t.is_published && !completedIds.has(t.id))
     .slice(0, 3);
@@ -218,6 +221,11 @@ export default function BerandaSiswa({ user }) {
                       }`}>
                         {t.tipe === 'project' ? 'Proyek Kreatif' : 'Misi Belajar'}
                       </span>
+                      {remedialIds.has(t.id) && (
+                        <span className="inline-block px-2 py-0.5 border border-[#0F172A] rounded-md text-[8px] font-black uppercase mt-1.5 ml-1.5 shadow-[1px_1px_0px_#0F172A] bg-amber-300 text-[#0F172A]">
+                          <i className="ti ti-refresh mr-0.5" />Remidi
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => navigate(`/ruang-belajar/${activeRoom.id}/tugas/${t.id}`)}

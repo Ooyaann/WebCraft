@@ -154,6 +154,8 @@ export const learningSubmissions = pgTable("learning_submissions", {
   ct_post_score_json: jsonb().$type<Record<string, number>>(),
   ai_tutor_log_json: jsonb().$type<Record<string, unknown>[]>(),
   ai_feedback: text(),
+  // Penanda pengerjaan ulang (remidi): skor dibatasi maksimal KKM.
+  is_remedial: boolean().notNull().default(false),
   submitted_at: ts().defaultNow().notNull(),
 });
 

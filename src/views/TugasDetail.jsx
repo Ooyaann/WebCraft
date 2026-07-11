@@ -3,6 +3,7 @@ import { useParams, useNavigate } from '@/lib/router-compat';
 import { useStore } from '../store/useStore';
 import api from '../services/api';
 import CTJourneyModal from '../components/ct-journey/CTJourneyModal';
+import { KKM } from '../lib/scoring';
 
 export default function TugasDetail() {
   const { roomId, tugasId } = useParams(); // tugasId is the pertemuan_id
@@ -15,6 +16,7 @@ export default function TugasDetail() {
   const [isJourneyOpen, setIsJourneyOpen] = useState(false);
   const [journeyAutoOpened, setJourneyAutoOpened] = useState(false);
   const [isLockedPertemuan, setIsLockedPertemuan] = useState(false);
+  const [isRemedialMode, setIsRemedialMode] = useState(false);
 
   const isTeacher = user?.role === 'guru';
 
@@ -43,6 +45,12 @@ export default function TugasDetail() {
         setIsLockedPertemuan(
           !isTeacher && !!found && idx > 0 &&
           !completed.has(tugasId) && !(prev && completed.has(prev.id))
+        );
+
+        // Mode remidi: misi belajar pertemuan ini pernah dikirim tapi < KKM
+        setIsRemedialMode(
+          !isTeacher &&
+          (subsRes.data || []).some(s => s.pertemuan_id === tugasId && s.tuntas === false)
         );
         const t = tasksRes.data || { learning_tasks: [], project_tasks: [] };
         setTasks(t);
@@ -167,6 +175,20 @@ export default function TugasDetail() {
           {pertemuan.judul}
         </h2>
       </div>
+
+      {/* Banner mode remidi — transparansi aturan nilai pengulangan */}
+      {isRemedialMode && (
+        <div className="bg-amber-50 border-4 border-[#0F172A] p-4 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-start gap-3">
+          <i className="ti ti-refresh text-amber-600 text-xl shrink-0 mt-0.5" />
+          <div className="font-nunito text-xs font-bold text-amber-900 text-left">
+            <p className="font-fredoka text-sm font-bold text-amber-950 mb-0.5">Mode Remidi</p>
+            <span>
+              Nilai misi ini sebelumnya di bawah KKM ({KKM}). Kerjakan ulang dengan lebih teliti —
+              sesuai aturan sekolah, nilai pengerjaan ulang maksimal {KKM}.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Single-box CBL Wizard: 1 Engage -> 2 Investigate -> 3 Action */}
       <div className="neo-section bg-white border-4 border-[#0F172A] rounded-[24px] shadow-[6px_6px_0px_#0F172A] flex flex-col overflow-hidden">

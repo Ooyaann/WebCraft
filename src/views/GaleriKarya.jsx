@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useStore } from '../store/useStore';
 import { toHTML, toFormattedCode } from '../services/astUtils';
+import { KKM, weightedRubricScore, criterionName } from '../lib/scoring';
 
 function KaryaPreviewMini({ ast }) {
   let parsedAst = [];
@@ -62,8 +63,9 @@ export default function GaleriKarya() {
   // State for teacher moderation panel
   const [submissions, setSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(true);
-  const [activeTab, setActiveTab] = useState('perlu_dinilai'); // 'perlu_dinilai' | 'sudah_dinilai' | 'publik'
+  const [activeTab, setActiveTab] = useState('perlu_dinilai'); // 'perlu_dinilai' | 'sudah_dinilai' | 'publik' | 'belajar'
   const [selectedSub, setSelectedSub] = useState(null);
+  const [kelasFilter, setKelasFilter] = useState('semua'); // filter kelas utk panel guru
 
   // Grading Modal Form State
   const [scores, setScores] = useState({
@@ -142,15 +144,16 @@ export default function GaleriKarya() {
       });
   };
 
-  // Open Grading Modal
+  // Open Grading Modal — kriteria diambil dari rubrik task (nama + bobot),
+  // bukan daftar hardcode, supaya bobot penilaian transparan & sesuai tugas.
   const openGradingModal = (sub) => {
     setSelectedSub(sub);
-    setScores(sub.rubrik_scores || {
-      'Kelengkapan elemen': 80,
-      'Kebenaran semantik': 80,
-      'Kreativitas desain': 80,
-      'Kesesuaian challenge': 80
-    });
+    const names = sub.rubrik?.length
+      ? sub.rubrik.map(criterionName)
+      : ['Kelengkapan elemen', 'Kebenaran semantik', 'Kreativitas desain'];
+    const initial = {};
+    names.forEach((n) => { initial[n] = sub.rubrik_scores?.[n] ?? 80; });
+    setScores(initial);
     setTeacherComment(sub.teacher_comment || '');
     setIsPublished(sub.is_published_to_gallery || false);
   };
@@ -162,13 +165,11 @@ export default function GaleriKarya() {
 
 
 
-  // Submit Grade
+  // Submit Grade — nilai akhir = rata-rata TERBOBOT sesuai rubrik task
   const handleSaveGrade = () => {
     if (!selectedSub) return;
 
-    // Calculate average score
-    const scoreValues = Object.values(scores);
-    const avgScore = Math.round(scoreValues.reduce((sum, val) => sum + val, 0) / scoreValues.length);
+    const avgScore = weightedRubricScore(selectedSub.rubrik || [], scores);
 
     api.put(`/submissions/project/${selectedSub.id}/grade`, {
       teacher_score: avgScore,
@@ -203,6 +204,7 @@ export default function GaleriKarya() {
 
   // Filter teacher view submissions
   const filteredSubmissions = submissions.filter(sub => {
+    if (kelasFilter !== 'semua' && sub.room_name !== kelasFilter) return false;
     if (activeTab === 'perlu_dinilai') {
       return sub.teacher_score === null;
     } else if (activeTab === 'sudah_dinilai') {
@@ -211,6 +213,18 @@ export default function GaleriKarya() {
       return sub.is_published_to_gallery === true;
     }
   });
+
+  // Karya misi belajar utk panel guru (dari API gallery, type 'learning')
+  const learningWorks = galleryItems.filter(item =>
+    item.type === 'learning' &&
+    (kelasFilter === 'semua' || item.room_name === kelasFilter)
+  );
+
+  // Daftar kelas unik utk dropdown filter guru
+  const kelasOptions = [...new Set([
+    ...submissions.map(s => s.room_name),
+    ...galleryItems.map(i => i.room_name),
+  ].filter(Boolean))];
 
   return (
     <div className="w-full px-4 md:px-8 py-8 flex flex-col gap-8 text-left max-w-7xl mx-auto">
@@ -255,10 +269,82 @@ export default function GaleriKarya() {
               <i className="ti ti-world mr-2" />
               Publik di Galeri ({submissions.filter(s => s.is_published_to_gallery).length})
             </button>
+            <button
+              onClick={() => setActiveTab('belajar')}
+              className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'belajar'
+                  ? 'bg-[#6366F1] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
+                  : 'bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+            >
+              <i className="ti ti-book mr-2" />
+              Misi Belajar ({galleryItems.filter(i => i.type === 'learning').length})
+            </button>
           </div>
 
-          {/* Submission List Table for Teachers */}
-          {loadingSubmissions ? (
+          {/* Filter Kelas */}
+          <div className="flex items-center gap-3 -mt-2">
+            <label className="font-fredoka text-xs font-bold text-slate-600 flex items-center gap-1.5">
+              <i className="ti ti-school text-base" /> Filter Kelas:
+            </label>
+            <select
+              value={kelasFilter}
+              onChange={(e) => setKelasFilter(e.target.value)}
+              className="px-3 py-1.5 border-2 border-[#0F172A] rounded-xl font-nunito font-bold text-xs bg-white shadow-[2px_2px_0px_#0F172A] cursor-pointer focus:outline-none"
+            >
+              <option value="semua">Semua Kelas</option>
+              {kelasOptions.map((k) => (
+                <option key={k} value={k}>{k}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Panel Misi Belajar (karya pembelajaran siswa + skor otomatis) */}
+          {activeTab === 'belajar' ? (
+            learningWorks.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center bg-white border-2 border-dashed border-slate-300 rounded-2xl">
+                <i className="ti ti-book-off text-5xl text-slate-300" />
+                <p className="font-fredoka text-xl font-bold text-slate-600 mt-4">Belum ada karya misi belajar.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {learningWorks.map((item) => (
+                  <div key={item.id} className="bg-white border-2 border-[#0F172A] shadow-[4px_4px_0px_#0F172A] p-5 rounded-2xl flex flex-col gap-3 transition-transform hover:-translate-y-1">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="bg-[#EEF2FF] text-[#0F172A] border-2 border-[#0F172A] text-xs font-fredoka font-bold px-2 py-0.5 rounded-lg shadow-[2px_2px_0px_#0F172A]">
+                        Misi Belajar
+                      </span>
+                      <span className="text-[11px] font-nunito font-bold text-slate-400">
+                        {new Date(item.published_at).toLocaleDateString('id-ID')}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="font-fredoka text-lg font-bold text-slate-800 leading-tight">{item.title}</h3>
+                      <p className="font-nunito text-sm font-semibold text-slate-500">Siswa: {item.student_name}</p>
+                      {item.room_name && (
+                        <span className="inline-block mt-1 text-[10px] font-nunito font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                          <i className="ti ti-school mr-1" />{item.room_name}
+                        </span>
+                      )}
+                    </div>
+                    <KaryaPreviewMini ast={item.ast} />
+                    <div className="flex justify-between items-center border-t border-slate-100 pt-3">
+                      <div className="flex items-center gap-1">
+                        <i className="ti ti-star text-[#FACC15]" />
+                        <span className="font-fredoka font-bold text-slate-800 text-sm">Skor: {item.score}/100</span>
+                      </div>
+                      <span className={`text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-lg border-2 ${
+                        item.score >= KKM
+                          ? 'text-emerald-700 bg-emerald-50 border-emerald-500'
+                          : 'text-amber-700 bg-amber-50 border-amber-500'
+                      }`}>
+                        {item.score >= KKM ? 'Tuntas' : `Remidi (KKM ${KKM})`}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : loadingSubmissions ? (
             <div className="py-12 flex flex-col items-center justify-center bg-white border-2 border-[#0F172A] rounded-2xl shadow-[4px_4px_0px_#0F172A]">
               <i className="ti ti-loader animate-spin text-4xl text-slate-500" />
               <p className="font-nunito font-bold text-slate-600 mt-4">Memuat data submission...</p>
@@ -287,6 +373,11 @@ export default function GaleriKarya() {
                     </div>
                     <h3 className="font-fredoka text-xl font-bold text-slate-800 leading-tight">{sub.task_title}</h3>
                     <p className="font-nunito text-sm font-semibold text-slate-500">Siswa: {sub.student_name}</p>
+                    {sub.room_name && (
+                      <span className="inline-block w-fit text-[10px] font-nunito font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                        <i className="ti ti-school mr-1" />{sub.room_name}
+                      </span>
+                    )}
                   </div>
 
                   <KaryaPreviewMini ast={sub.final_ast} />
@@ -661,26 +752,60 @@ export default function GaleriKarya() {
 
               {/* Right Panel: Manual Grading Forms */}
               <div className="flex flex-col gap-4">
-                <h4 className="font-fredoka font-bold text-sm text-slate-700">Skor per Rubrik Penilaian</h4>
+                <h4 className="font-fredoka font-bold text-sm text-slate-700">Skor per Rubrik Penilaian (sesuai bobot tugas)</h4>
 
                 <div className="flex flex-col gap-3">
-                  {Object.keys(scores).map((kriteria) => (
-                    <div key={kriteria} className="flex flex-col gap-1.5 bg-slate-50 p-3 border-2 border-[#0F172A] rounded-xl">
-                      <div className="flex justify-between items-center">
-                        <span className="font-fredoka font-bold text-xs text-slate-600">{kriteria}</span>
-                        <span className="font-fredoka font-bold text-sm text-[#3B82F6]">{scores[kriteria]}/100</span>
+                  {Object.keys(scores).map((kriteria) => {
+                    const bobot = selectedSub.rubrik?.find((c) => criterionName(c) === kriteria)?.bobot;
+                    return (
+                      <div key={kriteria} className="flex flex-col gap-1.5 bg-slate-50 p-3 border-2 border-[#0F172A] rounded-xl">
+                        <div className="flex justify-between items-center">
+                          <span className="font-fredoka font-bold text-xs text-slate-600">
+                            {kriteria}
+                            {bobot ? (
+                              <span className="ml-1.5 text-[10px] text-white bg-[#6366F1] border border-[#0F172A] px-1.5 py-0.5 rounded-md align-middle">
+                                bobot {bobot}%
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="font-fredoka font-bold text-sm text-[#3B82F6]">{scores[kriteria]}/100</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={scores[kriteria]}
+                          onChange={(e) => setScores({ ...scores, [kriteria]: parseInt(e.target.value) })}
+                          className="w-full accent-[#3B82F6] cursor-pointer"
+                        />
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={scores[kriteria]}
-                        onChange={(e) => setScores({ ...scores, [kriteria]: parseInt(e.target.value) })}
-                        className="w-full accent-[#3B82F6] cursor-pointer"
-                      />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {/* Transparansi: nilai akhir terbobot dihitung live */}
+                {(() => {
+                  const total = weightedRubricScore(selectedSub.rubrik || [], scores);
+                  const hasBobot = selectedSub.rubrik?.some((c) => Number(c.bobot) > 0);
+                  const formula = hasBobot
+                    ? selectedSub.rubrik.map((c) => `${scores[criterionName(c)] ?? 0}×${Number(c.bobot) || 0}`).join(' + ')
+                    : Object.values(scores).join(' + ');
+                  const divisor = hasBobot
+                    ? selectedSub.rubrik.reduce((s, c) => s + (Number(c.bobot) || 0), 0)
+                    : Object.keys(scores).length;
+                  return (
+                    <div className={`border-2 border-[#0F172A] rounded-xl p-3 shadow-[3px_3px_0px_#0F172A] ${total >= KKM ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-fredoka font-bold text-sm text-slate-800">Nilai Akhir {hasBobot ? '(terbobot)' : '(rata-rata)'}</span>
+                        <span className={`font-fredoka font-black text-2xl ${total >= KKM ? 'text-emerald-600' : 'text-amber-600'}`}>{total}<span className="text-xs text-slate-400">/100</span></span>
+                      </div>
+                      <p className="font-mono text-[10px] text-slate-500 mt-1">= ({formula}) ÷ {divisor}</p>
+                      <p className={`font-fredoka text-[11px] font-bold mt-1 ${total >= KKM ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {total >= KKM ? `✔ Tuntas (≥ KKM ${KKM})` : `⚠ Belum Tuntas (KKM ${KKM})`}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex flex-col gap-1.5">
                   <label className="font-fredoka font-bold text-xs text-slate-600">Catatan/Umpan Balik Guru</label>

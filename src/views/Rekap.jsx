@@ -212,6 +212,30 @@ export default function Rekap() {
             </div>
           </div>
 
+          {/* Transparansi perhitungan nilai (rumus terbuka, bukan angka misterius) */}
+          <div className={`border-2 border-[#0F172A] rounded-xl p-4 shadow-[3px_3px_0px_#0F172A] text-left ${learning.tuntas === false ? 'bg-amber-50' : 'bg-emerald-50'}`}>
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <p className="font-fredoka text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <i className="ti ti-calculator" /> Cara Nilai Ini Dihitung
+              </p>
+              <span className={`text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-lg border-2 ${
+                learning.tuntas === false
+                  ? 'text-amber-700 bg-white border-amber-500'
+                  : 'text-emerald-700 bg-white border-emerald-500'
+              }`}>
+                {learning.tuntas === false
+                  ? `Belum Tuntas — di bawah KKM ${learning.kkm ?? 70}`
+                  : `Tuntas (≥ KKM ${learning.kkm ?? 70})`}
+                {learning.is_remedial ? ' · Nilai Remidi' : ''}
+              </span>
+            </div>
+            <ul className="font-nunito text-[11px] font-bold text-slate-700 mt-2 space-y-1">
+              <li>• Akurasi = 100 − 15 × jumlah error struktur pada karya final = <b>{learning.accuracy}</b></li>
+              <li>• Efisiensi = berdasarkan {learning.attempts}x percobaan (≤1→100, 2→90, 3→80, 4→70, ≥5→60) = <b>{learning.efficiency ?? '-'}</b></li>
+              <li>• Skor Akhir = (Akurasi + Efisiensi) ÷ 2 = ({learning.accuracy} + {learning.efficiency ?? '?'}) ÷ 2 = <b>{learning.ctScore}</b>{learning.is_remedial ? ` (dibatasi maks KKM ${learning.kkm ?? 70} karena remidi)` : ''}</li>
+            </ul>
+          </div>
+
           <div>
             <p className="font-fredoka text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Hasil Karyamu</p>
             <RekapArtifact ast={learning.ast} />

@@ -11,6 +11,12 @@ import {
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { handler, HttpError, parseBody } from "@/lib/http";
+import {
+  accuracyFromErrors,
+  efficiencyFromAttempts,
+  KKM,
+  learningFinalScore,
+} from "@/lib/scoring";
 import { validateAst, type AstNode } from "@/lib/validator";
 
 const submissionSchema = z.object({
@@ -22,15 +28,6 @@ const submissionSchema = z.object({
   ai_feedback: z.string().nullish(),
   ct_post_score: z.record(z.string(), z.number().min(0).max(100)).nullish(),
 });
-
-// Skor efisiensi proses berdasarkan jumlah percobaan (port submissions.py)
-function calculateEfficiencyScore(attempts: number): number {
-  if (attempts <= 1) return 100;
-  if (attempts === 2) return 90;
-  if (attempts === 3) return 80;
-  if (attempts === 4) return 70;
-  return 60;
-}
 
 // POST /api/submissions/learning — kirim hasil misi belajar (upsert per siswa+task)
 export const POST = handler(async (req) => {
@@ -71,13 +68,36 @@ export const POST = handler(async (req) => {
   // ponytail: attempt_count/efficiency masih klaim klien; batas kejujurannya
   // adalah minimal sebanyak snapshot yang dikirim.
   const attemptCount = Math.max(body.attempt_count, body.ast_snapshots.length);
-  const efficiency = calculateEfficiencyScore(attemptCount);
+  const efficiency = efficiencyFromAttempts(attemptCount);
   const lastSnapshot = body.ast_snapshots[body.ast_snapshots.length - 1];
   const finalAst = (lastSnapshot?.["ast"] as AstNode[] | undefined) ?? [];
   const serverErrors = validateAst(finalAst, task.validator_rules_json ?? []);
-  const accuracy =
-    serverErrors.length === 0 ? 100 : Math.max(0, 100 - serverErrors.length * 15);
-  const finalScore = Math.trunc((accuracy + efficiency) / 2);
+  const accuracy = accuracyFromErrors(serverErrors.length);
+  let finalScore = learningFinalScore(accuracy, efficiency);
+
+  const [existing] = await db
+    .select({ id: learningSubmissions.id, final_score: learningSubmissions.final_score })
+    .from(learningSubmissions)
+    .where(
+      and(
+        eq(learningSubmissions.task_id, body.task_id),
+        eq(learningSubmissions.siswa_id, user.id),
+      ),
+    )
+    .limit(1);
+
+  // Aturan remidi: misi yang sudah TUNTAS (≥ KKM) tidak bisa dikirim ulang;
+  // pengiriman ulang misi belum tuntas = remidi, nilainya dibatasi maks KKM.
+  const isRemedial = !!existing && existing.final_score < KKM;
+  if (existing && existing.final_score >= KKM) {
+    throw new HttpError(
+      400,
+      `Misi ini sudah tuntas (nilai ${existing.final_score} ≥ KKM ${KKM}) dan tidak dapat dikirim ulang.`,
+    );
+  }
+  if (isRemedial) {
+    finalScore = Math.min(finalScore, KKM);
+  }
 
   // Simpan CT post-assessment hanya bila dikirim klien; jangan mengarang skor
   // supaya analitik guru tidak pernah menampilkan hasil CT fiktif.
@@ -97,18 +117,8 @@ export const POST = handler(async (req) => {
     ct_post_score_json: postScore,
     ai_feedback:
       body.ai_feedback || "Kerja bagus! Terus asah logika pemrogramanmu.",
+    is_remedial: isRemedial,
   };
-
-  const [existing] = await db
-    .select({ id: learningSubmissions.id })
-    .from(learningSubmissions)
-    .where(
-      and(
-        eq(learningSubmissions.task_id, body.task_id),
-        eq(learningSubmissions.siswa_id, user.id),
-      ),
-    )
-    .limit(1);
 
   let subId: string;
   if (existing) {
@@ -133,6 +143,9 @@ export const POST = handler(async (req) => {
       final_score: finalScore,
       accuracy,
       efficiency,
+      is_remedial: isRemedial,
+      kkm: KKM,
+      tuntas: finalScore >= KKM,
     },
     { status: 201 },
   );

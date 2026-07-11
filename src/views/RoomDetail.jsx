@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '@/lib/router-compat';
 import { useStore } from '../store/useStore';
 import api from '../services/api';
+import { KKM } from '../lib/scoring';
 
 export default function RoomDetail() {
   const { roomId } = useParams();
@@ -9,6 +10,7 @@ export default function RoomDetail() {
   const { activeRoom, setActiveRoom, user } = useStore();
   const [pertemuanList, setPertemuanList] = useState([]);
   const [completedTaskIds, setCompletedTaskIds] = useState(new Set());
+  const [remedialIds, setRemedialIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -158,6 +160,14 @@ export default function RoomDetail() {
           ...(projRes.data?.map(p => p.pertemuan_id).filter(Boolean) || [])
         ]);
         setCompletedTaskIds(completed);
+
+        // Remidi: misi belajar tercatat tapi nilainya di bawah KKM → wajib diulang
+        const remedial = new Set(
+          (subsRes.data || [])
+            .filter(s => s.tuntas === false && s.pertemuan_id)
+            .map(s => s.pertemuan_id)
+        );
+        setRemedialIds(remedial);
       })
       .catch(err => console.error("Error loading room details:", err))
       .finally(() => setIsLoading(false));
@@ -428,6 +438,7 @@ export default function RoomDetail() {
           <div className="flex flex-col gap-5 relative pl-5 border-l-4 border-[#0F172A] ml-[14px] py-2">
             {pertemuanList.map((pert, index) => {
               const isCompleted = completedTaskIds.has(pert.id);
+              const isRemedial = remedialIds.has(pert.id);
               const isFirst = index === 0;
               const prevPert = index > 0 ? pertemuanList[index - 1] : null;
               const isPrevCompleted = prevPert ? completedTaskIds.has(prevPert.id) : false;
@@ -444,7 +455,13 @@ export default function RoomDetail() {
               let statusBadgeClass = "";
               let bulletBgClass = "";
 
-              if (isCompleted) {
+              if (isCompleted && isRemedial) {
+                borderClass += " border-l-amber-500";
+                statusBadgeClass = "bg-amber-50 text-amber-700 border-amber-300";
+                bulletBgClass = "bg-amber-500 text-white";
+                subText = "text-amber-700";
+                descText = "text-slate-600";
+              } else if (isCompleted) {
                 borderClass += " border-l-emerald-500";
                 statusBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-250";
                 bulletBgClass = "bg-emerald-500 text-white";
@@ -476,7 +493,9 @@ export default function RoomDetail() {
                 <div key={pert.id} className="relative">
                   {/* Bullet timeline circle */}
                   <span className={`absolute -left-[30px] top-4.5 w-6 h-6 rounded-full border-2 border-[#0F172A] flex items-center justify-center text-[10px] font-black z-10 shadow-sm ${bulletBgClass}`}>
-                    {isCompleted ? (
+                    {isCompleted && isRemedial ? (
+                      <i className="ti ti-refresh text-[10px] font-bold" />
+                    ) : isCompleted ? (
                       <i className="ti ti-check text-[10px] font-bold" />
                     ) : (
                       pert.urutan
@@ -492,9 +511,10 @@ export default function RoomDetail() {
                     onClick={() => {
                       if (isTeacher) {
                         navigate(`/ruang-belajar/${roomId}/tugas/${pert.id}`);
-                      } else if (isCompleted) {
+                      } else if (isCompleted && !isRemedial) {
                         navigate(`/ruang-belajar/${roomId}/rekap/${pert.id}`);
                       } else if (isUnlocked) {
+                        // Termasuk remidi: kembali ke alur pengerjaan, bukan rekap
                         navigate(`/ruang-belajar/${roomId}/tugas/${pert.id}`);
                       }
                     }}
@@ -502,12 +522,14 @@ export default function RoomDetail() {
                     <div className="text-left flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className={`px-2 py-0.5 rounded-lg text-[9px] font-fredoka font-bold border ${statusBadgeClass}`}>
-                          {isCompleted 
-                            ? 'Selesai' 
-                            : !pert.is_published 
-                            ? 'Draft (Disembunyikan)' 
-                            : isUnlocked 
-                            ? 'Siap Dikerjakan' 
+                          {isCompleted && isRemedial
+                            ? `Belum Tuntas (KKM ${KKM}) · Remidi`
+                            : isCompleted
+                            ? 'Selesai'
+                            : !pert.is_published
+                            ? 'Draft (Disembunyikan)'
+                            : isUnlocked
+                            ? 'Siap Dikerjakan'
                             : 'Terkunci'}
                         </span>
                         
@@ -574,6 +596,11 @@ export default function RoomDetail() {
                             Hapus
                           </button>
                         </div>
+                      ) : isCompleted && isRemedial ? (
+                        <span className="px-3 py-1.5 bg-amber-400 text-[#0F172A] border-2 border-[#0F172A] shadow-[2px_2px_0px_#0F172A] font-fredoka text-[10px] font-bold rounded-lg flex items-center gap-1 shrink-0 hover:bg-amber-300">
+                          <i className="ti ti-refresh" />
+                          Kerjakan Remidi
+                        </span>
                       ) : isCompleted ? (
                         <span className="px-3 py-1.5 bg-white text-[#10B981] border-2 border-[#10B981] shadow-[2px_2px_0px_#0F172A] font-fredoka text-[10px] font-bold rounded-lg flex items-center gap-1 shrink-0 hover:bg-emerald-50">
                           <i className="ti ti-player-play text-[#10B981]" />
