@@ -66,8 +66,8 @@ export default function Workspace({ isSandbox = false }) {
       // Tablet (seperti iPad portrait lebar >= 768px) diizinkan mengakses workspace.
       setIsPortraitPhone(window.innerWidth < 640 && window.innerHeight > window.innerWidth);
       
-      // Mode compact (tabbed) diaktifkan untuk HP landscape (tinggi <= 500px) ATAU layar di bawah 1024px (tablet)
-      setIsCompact(window.innerWidth < 1024 || window.innerHeight <= 500);
+      // Mode compact (tabbed) diaktifkan untuk HP landscape (tinggi <= 500px) ATAU tablet landscape/portrait (lebar < 1200px)
+      setIsCompact(window.innerWidth < 1200 || window.innerHeight <= 500);
     };
     check();
     window.addEventListener('resize', check);
