@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
+import { DROP_CONTAINER_TAGS } from '../../services/astUtils';
+
+// Tag kosong tanpa konten (garis pemisah / ganti baris).
+const VOID_TAGS = ['hr', 'br'];
 
 export default function KanvasItem({ node, isCompact = false }) {
   const {
@@ -14,7 +18,9 @@ export default function KanvasItem({ node, isCompact = false }) {
   const [dropPreview, setDropPreview] = useState(null); // 'before' | 'after' | null
   const [isDragOverChildren, setIsDragOverChildren] = useState(false);
 
-  const isContainer = ['body', 'div', 'ul'].includes(node.type);
+  // Semua wadah "murni" bisa diisi (bukan lagi cuma body/div/ul).
+  const isContainer = DROP_CONTAINER_TAGS.includes(node.type);
+  const isVoid = VOID_TAGS.includes(node.type);
 
   // Sibling drag and drop handlers (prevent nesting loop and drag body-root)
   const handleDragOverCard = (e) => {
@@ -221,6 +227,14 @@ export default function KanvasItem({ node, isCompact = false }) {
               <p className={`text-slate-400 font-nunito font-bold text-center ${isCompact ? 'text-[8.5px] py-1.5' : 'text-[10px] py-4'}`}>
                 Wadah kosong. Tambahkan blok di sini!
               </p>
+            )}
+          </div>
+        ) : isVoid ? (
+          <div className={`flex items-center justify-center text-slate-400 font-nunito font-bold ${isCompact ? 'text-[9px] py-1' : 'text-[11px] py-2'}`}>
+            {node.type === 'hr' ? (
+              <span className="w-full flex items-center gap-2"><span className="flex-1 h-0.5 bg-slate-300" />garis pemisah<span className="flex-1 h-0.5 bg-slate-300" /></span>
+            ) : (
+              <span>↵ ganti baris</span>
             )}
           </div>
         ) : (

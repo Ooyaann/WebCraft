@@ -34,4 +34,31 @@ describe('toHTML XSS hardening', () => {
     expect(out).toContain('<body>');
     expect(out).toContain('src="https://ex.com/a.png"');
   });
+
+  it('renders text content of list items and spans (bukan hilang)', () => {
+    const out = toHTML([
+      { type: 'ul', children: [{ type: 'li', content: 'Item Satu' }] },
+      { type: 'span', content: 'teks span' },
+    ]);
+    expect(out).toContain('<li>Item Satu</li>');
+    expect(out).toContain('<span>teks span</span>');
+  });
+
+  it('renders text before children in a container (mis. section berlabel)', () => {
+    const out = toHTML([{ type: 'section', content: 'Judul Bagian', children: [{ type: 'p', content: 'isi' }] }]);
+    expect(out).toContain('<section>Judul Bagian<p>isi</p></section>');
+  });
+
+  it('renders new leaf & void tags: blockquote, code, hr, br', () => {
+    const out = toHTML([
+      { type: 'blockquote', content: 'kutipan' },
+      { type: 'code', content: "x=1" },
+      { type: 'hr' },
+      { type: 'br' },
+    ]);
+    expect(out).toContain('<blockquote>kutipan</blockquote>');
+    expect(out).toContain('<code>x=1</code>');
+    expect(out).toContain('<hr />');
+    expect(out).toContain('<br />');
+  });
 });

@@ -21,10 +21,20 @@ export type ValidationRule = {
 
 export type ValidationError = { rule: ValidationRule; message?: string };
 
+// Tag yang boleh punya anak (dipakai renderer). Termasuk tag teks+anak
+// (a/span/button/li) yang juga membawa teks sendiri.
 export const CONTAINER_TAGS = [
   'body', 'div', 'ul', 'ol', 'nav', 'header', 'footer', 'section',
-  'article', 'main', 'aside', 'form', 'table', 'tr', 'thead', 'tbody',
+  'article', 'main', 'aside', 'form', 'figure', 'table', 'tr', 'thead', 'tbody',
   'a', 'span', 'button', 'li'
+];
+
+// Kontainer "murni" yang jadi zona-drop di kanvas (tanpa input teks).
+// = CONTAINER_TAGS tanpa tag teks a/span/button/li. Satu sumber kebenaran
+// dipakai KanvasItem supaya semua wadah bisa diisi (bukan hanya body/div/ul).
+export const DROP_CONTAINER_TAGS = [
+  'body', 'div', 'ul', 'ol', 'nav', 'header', 'footer', 'section',
+  'article', 'main', 'aside', 'form', 'figure', 'table', 'tr', 'thead', 'tbody',
 ];
 
 // Helper to escape HTML characters
@@ -66,9 +76,13 @@ const sanitizeStyleContent = (css: unknown): string =>
 const KNOWN_LEAF_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'p', 'li', 'button', 'span', 'a',
-  'label', 'th', 'td', 'caption',
+  'label', 'th', 'td', 'caption', 'figcaption',
   'strong', 'em', 'b', 'i', 'mark', 'small',
+  'blockquote', 'code', 'pre',
 ];
+
+// Tag kosong (self-closing) tanpa konten maupun anak.
+const VOID_TAGS = ['hr', 'br'];
 
 // Serialize AST to raw HTML string (for sandboxed iframe preview)
 export const toHTML = (nodes?: AstNode[] | null): string => {
@@ -87,6 +101,9 @@ export const toHTML = (nodes?: AstNode[] | null): string => {
     if (node.type === 'textarea') {
       return `<textarea style="padding:4px 8px; border:2px solid #0F172A; border-radius:6px; width:100%;" rows="3">${escapeHTML(node.content || '')}</textarea>`;
     }
+    if (VOID_TAGS.includes(node.type)) {
+      return `<${node.type} />`;
+    }
     if (CONTAINER_TAGS.includes(node.type)) {
       const inner = toHTML(node.children || []);
       // Container tags that also carry text content render it before children
@@ -97,7 +114,9 @@ export const toHTML = (nodes?: AstNode[] | null): string => {
       if (node.type === 'button') {
         return `<button style="background-color:#FACC15; color:#0F172A; border:3px solid #0F172A; box-shadow:2px 2px 0px #0F172A; font-weight:bold; padding:4px 12px; border-radius:6px; cursor:pointer;">${textContent}${inner}</button>`;
       }
-      return `<${node.type}>${inner}</${node.type}>`;
+      // Teks sendiri (mis. <li>, <span>) dirender sebelum anak — sebelumnya
+      // hilang karena hanya inner yang dipakai.
+      return `<${node.type}>${textContent}${inner}</${node.type}>`;
     }
     if (KNOWN_LEAF_TAGS.includes(node.type)) {
       return `<${node.type}>${escapeHTML(node.content || '')}</${node.type}>`;
@@ -125,12 +144,16 @@ export const toFormattedCode = (nodes?: AstNode[] | null, depth = 0): string => 
     if (node.type === 'textarea') {
       return `${indent}<textarea>${escapeHTML(node.content || '')}</textarea>`;
     }
+    if (VOID_TAGS.includes(node.type)) {
+      return `${indent}<${node.type} />`;
+    }
     if (CONTAINER_TAGS.includes(node.type)) {
+      const textContent = node.content ? escapeHTML(node.content) : '';
       const inner = toFormattedCode(node.children || [], depth + 1);
       if (inner) {
-        return `${indent}<${node.type}>\n${inner}\n${indent}</${node.type}>`;
+        return `${indent}<${node.type}>${textContent}\n${inner}\n${indent}</${node.type}>`;
       }
-      return `${indent}<${node.type}></${node.type}>`;
+      return `${indent}<${node.type}>${textContent}</${node.type}>`;
     }
     // Known leaf tags and fallback
     if (KNOWN_LEAF_TAGS.includes(node.type)) {

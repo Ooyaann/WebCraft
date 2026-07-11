@@ -97,17 +97,21 @@ const HISTORY_LIMIT = 50;
 const deepCloneAst = (ast: BlockNode[]): BlockNode[] => JSON.parse(JSON.stringify(ast));
 
 const getBlockDefaults = (type: string): { content: string; children?: BlockNode[] } => {
-  const containers = ['body', 'div', 'ul', 'ol', 'nav', 'header', 'footer', 'section', 'article', 'main', 'aside', 'form', 'table', 'tr', 'thead', 'tbody', 'a', 'span', 'button', 'li'];
+  const containers = ['body', 'div', 'ul', 'ol', 'nav', 'header', 'footer', 'section', 'article', 'main', 'aside', 'form', 'figure', 'table', 'tr', 'thead', 'tbody', 'a', 'span', 'button', 'li'];
 
   let content = '';
   if (type === 'img') content = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300';
   else if (type.match(/^h[1-6]$/)) content = 'Judul Baru';
-  else if (['p', 'span', 'a', 'label', 'th', 'td', 'caption', 'strong', 'em', 'b', 'i', 'mark', 'small'].includes(type)) content = 'Teks baru di sini.';
+  else if (['p', 'span', 'a', 'label', 'th', 'td', 'caption', 'figcaption', 'strong', 'em', 'b', 'i', 'mark', 'small'].includes(type)) content = 'Teks baru di sini.';
   else if (type === 'button') content = 'Klik Aku';
   else if (type === 'li') content = 'Item list';
+  else if (type === 'blockquote') content = 'Tulis kutipan inspiratif di sini.';
+  else if (type === 'code') content = "console.log('Halo Dunia');";
+  else if (type === 'pre') content = 'Teks kode / praformat';
   else if (type === 'style') content = 'body { background-color: #ffffff; }';
   else if (type === 'input') content = 'Teks Placeholder';
   else if (type === 'textarea') content = 'Teks Area';
+  // hr & br: tag kosong, tanpa konten.
 
   return {
     content,

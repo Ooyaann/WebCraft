@@ -29,11 +29,21 @@ const BLOCK_GROUPS = [
       { type: 'h1', name: '<h1>', icon: 'ti-heading', desc: 'Judul terbesar (Heading 1).' },
       { type: 'h2', name: '<h2>', icon: 'ti-heading', desc: 'Sub-judul (Heading 2).' },
       { type: 'h3', name: '<h3>', icon: 'ti-heading', desc: 'Sub-judul kecil (Heading 3).' },
+      { type: 'h4', name: '<h4>', icon: 'ti-heading', desc: 'Sub-judul tingkat 4.' },
+      { type: 'h5', name: '<h5>', icon: 'ti-heading', desc: 'Sub-judul tingkat 5.' },
+      { type: 'h6', name: '<h6>', icon: 'ti-heading', desc: 'Sub-judul terkecil (Heading 6).' },
       { type: 'p', name: '<p>', icon: 'ti-align-left', desc: 'Paragraf teks biasa.' },
       { type: 'span', name: '<span>', icon: 'ti-text-size', desc: 'Pembungkus teks sejajar (inline).' },
       { type: 'strong', name: '<strong>', icon: 'ti-bold', desc: 'Teks tebal (Penting).' },
       { type: 'em', name: '<em>', icon: 'ti-italic', desc: 'Teks miring (Penekanan).' },
-      { type: 'a', name: '<a>', icon: 'ti-link', desc: 'Tautan (Hyperlink) antar halaman.' }
+      { type: 'mark', name: '<mark>', icon: 'ti-highlight', desc: 'Teks yang ditandai (stabilo).' },
+      { type: 'small', name: '<small>', icon: 'ti-letter-case-lower', desc: 'Teks berukuran kecil.' },
+      { type: 'blockquote', name: '<blockquote>', icon: 'ti-quote', desc: 'Blok kutipan menonjol.' },
+      { type: 'code', name: '<code>', icon: 'ti-code', desc: 'Cuplikan kode dalam teks.' },
+      { type: 'pre', name: '<pre>', icon: 'ti-source-code', desc: 'Teks praformat (jaga spasi/enter).' },
+      { type: 'a', name: '<a>', icon: 'ti-link', desc: 'Tautan (Hyperlink) antar halaman.' },
+      { type: 'hr', name: '<hr>', icon: 'ti-separator-horizontal', desc: 'Garis pemisah antar bagian.' },
+      { type: 'br', name: '<br>', icon: 'ti-corner-down-left', desc: 'Ganti baris di dalam teks.' }
     ]
   },
   {
@@ -67,7 +77,12 @@ const BLOCK_GROUPS = [
     color: 'bg-pink-600 text-white',
     blocks: [
       { type: 'img', name: '<img>', icon: 'ti-photo', desc: 'Menampilkan berkas gambar.' },
+      { type: 'figure', name: '<figure>', icon: 'ti-photo-scan', desc: 'Wadah gambar + keterangan.' },
+      { type: 'figcaption', name: '<figcaption>', icon: 'ti-text-caption', desc: 'Keterangan untuk gambar.' },
       { type: 'table', name: '<table>', icon: 'ti-table', desc: 'Wadah utama tabel data.' },
+      { type: 'caption', name: '<caption>', icon: 'ti-text-caption', desc: 'Judul/keterangan tabel.' },
+      { type: 'thead', name: '<thead>', icon: 'ti-table-row', desc: 'Bagian kepala tabel.' },
+      { type: 'tbody', name: '<tbody>', icon: 'ti-table', desc: 'Bagian isi tabel.' },
       { type: 'tr', name: '<tr>', icon: 'ti-layout-bottombar', desc: 'Baris di dalam tabel.' },
       { type: 'td', name: '<td>', icon: 'ti-layout-distribute-horizontal', desc: 'Sel data (kolom) di dalam baris.' },
       { type: 'th', name: '<th>', icon: 'ti-layout-navbar', desc: 'Sel judul kolom tabel.' },

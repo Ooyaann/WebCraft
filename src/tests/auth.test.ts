@@ -12,6 +12,12 @@ process.env.JWT_SECRET = "test-secret-jangan-dipakai-produksi";
 
 const url = (path: string) => `http://test.local${path}`;
 
+// Route handlers mengembalikan NextResponse (punya .cookies) walau tipe
+// statiknya Response — baca nilai cookie lewat helper cast.
+const cookieVal = (res: unknown, name: string): string | undefined =>
+  (res as { cookies: { get(n: string): { value: string } | undefined } })
+    .cookies.get(name)?.value;
+
 const postJson = (path: string, body: unknown, token?: string) =>
   new Request(url(path), {
     method: "POST",
@@ -124,8 +130,8 @@ describe("auth", () => {
       {},
     );
     expect(res.status).toBe(200);
-    const cookieAccess = res.cookies.get("wc_access")?.value;
-    const cookieRefresh = res.cookies.get("wc_refresh")?.value;
+    const cookieAccess = cookieVal(res, "wc_access");
+    const cookieRefresh = cookieVal(res, "wc_refresh");
     expect(cookieAccess).toBeTruthy();
     expect(cookieRefresh).toBeTruthy();
 
@@ -151,7 +157,7 @@ describe("auth", () => {
       {},
     );
     expect(rRes.status).toBe(200);
-    expect(rRes.cookies.get("wc_access")?.value).toBeTruthy();
+    expect(cookieVal(rRes, "wc_access")).toBeTruthy();
   });
 
   it("GET /me dengan token → profil; tanpa token → 401", async () => {
