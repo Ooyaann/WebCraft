@@ -58,12 +58,16 @@ export default function Workspace({ isSandbox = false }) {
 
   // HP portrait: Triple-View butuh layar lebar → minta putar ke landscape.
   const [isPortraitPhone, setIsPortraitPhone] = useState(false);
-  // ponytail: single flag for compact layout on short screens (mobile landscape)
+  // ponytail: single flag for compact layout on short screens (mobile landscape) or tablet portrait views
   const [isCompact, setIsCompact] = useState(false);
   useEffect(() => {
     const check = () => {
-      setIsPortraitPhone(window.innerWidth < 820 && window.innerHeight > window.innerWidth);
-      setIsCompact(window.innerHeight <= 500);
+      // Blokir rotasi hanya untuk layar kecil (HP portrait asli < 640px).
+      // Tablet (seperti iPad portrait lebar >= 768px) diizinkan mengakses workspace.
+      setIsPortraitPhone(window.innerWidth < 640 && window.innerHeight > window.innerWidth);
+      
+      // Mode compact (tabbed) diaktifkan untuk HP landscape (tinggi <= 500px) ATAU layar di bawah 1024px (tablet)
+      setIsCompact(window.innerWidth < 1024 || window.innerHeight <= 500);
     };
     check();
     window.addEventListener('resize', check);
