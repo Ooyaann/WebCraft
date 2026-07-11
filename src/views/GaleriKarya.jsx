@@ -238,10 +238,10 @@ export default function GaleriKarya() {
       {isTeacher ? (
         <div className="flex flex-col gap-6">
           {/* Teacher Tab Switch */}
-          <div className="flex border-b-4 border-[#0F172A] gap-2">
+          <div className="flex border-b-4 border-[#0F172A] gap-2 overflow-x-auto">
             <button
               onClick={() => setActiveTab('perlu_dinilai')}
-              className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'perlu_dinilai'
+              className={`px-5 py-3 shrink-0 whitespace-nowrap font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'perlu_dinilai'
                   ? 'bg-[#3B82F6] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
                   : 'bg-white text-slate-700 hover:bg-slate-50'
                 }`}
@@ -251,7 +251,7 @@ export default function GaleriKarya() {
             </button>
             <button
               onClick={() => setActiveTab('sudah_dinilai')}
-              className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'sudah_dinilai'
+              className={`px-5 py-3 shrink-0 whitespace-nowrap font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'sudah_dinilai'
                   ? 'bg-[#10B981] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
                   : 'bg-white text-slate-700 hover:bg-slate-50'
                 }`}
@@ -261,7 +261,7 @@ export default function GaleriKarya() {
             </button>
             <button
               onClick={() => setActiveTab('publik')}
-              className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'publik'
+              className={`px-5 py-3 shrink-0 whitespace-nowrap font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'publik'
                   ? 'bg-[#EC4899] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
                   : 'bg-white text-slate-700 hover:bg-slate-50'
                 }`}
@@ -271,7 +271,7 @@ export default function GaleriKarya() {
             </button>
             <button
               onClick={() => setActiveTab('belajar')}
-              className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'belajar'
+              className={`px-5 py-3 shrink-0 whitespace-nowrap font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${activeTab === 'belajar'
                   ? 'bg-[#6366F1] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
                   : 'bg-white text-slate-700 hover:bg-slate-50'
                 }`}
@@ -411,10 +411,10 @@ export default function GaleriKarya() {
         <div className="flex flex-col gap-6">
           {/* Student/Guest Tab Switcher */}
           {isStudent && (
-            <div className="flex border-b-4 border-[#0F172A] gap-2">
+            <div className="flex border-b-4 border-[#0F172A] gap-2 overflow-x-auto">
               <button
                 onClick={() => setStudentTab('karya_saya')}
-                className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${studentTab === 'karya_saya'
+                className={`px-5 py-3 shrink-0 whitespace-nowrap font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${studentTab === 'karya_saya'
                     ? 'bg-[#3B82F6] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
                     : 'bg-white text-slate-700 hover:bg-slate-50'
                   }`}
@@ -424,7 +424,7 @@ export default function GaleriKarya() {
               </button>
               <button
                 onClick={() => setStudentTab('galeri_publik')}
-                className={`px-5 py-3 font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${studentTab === 'galeri_publik'
+                className={`px-5 py-3 shrink-0 whitespace-nowrap font-fredoka font-bold border-2 border-b-0 border-[#0F172A] rounded-t-xl transition-all cursor-pointer ${studentTab === 'galeri_publik'
                     ? 'bg-[#EC4899] text-white translate-y-1 shadow-[2px_0px_0px_#0f172a]'
                     : 'bg-white text-slate-700 hover:bg-slate-50'
                   }`}

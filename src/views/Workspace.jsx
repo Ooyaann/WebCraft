@@ -73,6 +73,20 @@ export default function Workspace({ isSandbox = false }) {
   const [isAnalyzingReflection, setIsAnalyzingReflection] = useState(false);
   const [finalReport, setFinalReport] = useState(null);
 
+  // HP portrait: Triple-View butuh layar lebar → minta putar ke landscape.
+  const [isPortraitPhone, setIsPortraitPhone] = useState(false);
+  useEffect(() => {
+    const check = () =>
+      setIsPortraitPhone(window.innerWidth < 820 && window.innerHeight > window.innerWidth);
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
+  }, []);
+
   // --- Pembatas panel Triple-View yang bisa diseret (resize) ---
   const [paletteWidth, setPaletteWidth] = useState(() => {
     const saved = parseInt(localStorage.getItem('webcraft_palette_w') ?? '', 10);
@@ -374,6 +388,25 @@ export default function Workspace({ isSandbox = false }) {
 
   return (
     <div className="w-full h-screen bg-[#E0F2FE] flex flex-col relative overflow-hidden font-nunito">
+      {/* Ajakan putar HP: workspace hanya nyaman di landscape */}
+      {isPortraitPhone && (
+        <div className="fixed inset-0 z-[99998] bg-[#0F172A]/95 flex flex-col items-center justify-center gap-5 p-8 text-center">
+          <div className="w-20 h-20 border-4 border-white rounded-2xl flex items-center justify-center animate-wiggle" style={{ animationDuration: '2s' }}>
+            <i className="ti ti-device-mobile-rotated text-white text-5xl" />
+          </div>
+          <h3 className="font-fredoka text-xl font-bold text-white">Putar HP-mu ke Mode Landscape</h3>
+          <p className="font-nunito text-sm font-bold text-slate-300 max-w-xs leading-relaxed">
+            Workspace Triple-View butuh layar melebar supaya palet blok, kanvas, dan preview muat bersamaan. Putar HP-mu, ya!
+          </p>
+          <button
+            onClick={() => navigate(isSandbox ? '/' : '/ruang-belajar')}
+            className="px-5 py-2.5 bg-white text-[#0F172A] border-2 border-[#0F172A] font-fredoka text-xs font-bold rounded-xl shadow-[3px_3px_0px_rgba(255,255,255,0.3)] cursor-pointer"
+          >
+            <i className="ti ti-arrow-left mr-1" /> Kembali
+          </button>
+        </div>
+      )}
+
       {/* Top Toolbar Navigation */}
       <header className="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-6 py-3.5 flex justify-between items-center border-b-4 border-[#0F172A] shrink-0 shadow-md">
         <div className="flex items-center gap-3">

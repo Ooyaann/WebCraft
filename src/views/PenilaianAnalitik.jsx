@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { useStore } from '../store/useStore';
 import api from '../services/api';
 import { aiService } from '../services/aiService';
+import { criterionName } from '../lib/scoring';
 
 export default function PenilaianAnalitik() {
   const { activeRoom, setActiveRoom } = useStore();
@@ -11,6 +13,96 @@ export default function PenilaianAnalitik() {
   const [insights, setInsights] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Ekspor rekap nilai lengkap ke Excel (multi-sheet, transparansi penuh)
+  const handleExportExcel = async () => {
+    if (!activeRoom || isExporting) return;
+    setIsExporting(true);
+    try {
+      const { data } = await api.get(`/rooms/${activeRoom.id}/export`);
+      const fmtDate = (d) => (d ? new Date(d).toLocaleString('id-ID') : '-');
+      const wb = XLSX.utils.book_new();
+
+      const ringkasan = studentGrades.map((s) => ({
+        'Nama Siswa': s.name,
+        'Email': s.email,
+        'Nilai Misi Belajar (rata-rata)': s.learning,
+        'Nilai Proyek': s.project ?? 'Belum dinilai',
+        'CT Komposit': s.ct,
+        'Dekomposisi': s.decomposition,
+        'Abstraksi': s.abstraction,
+        'Pengenalan Pola': s.pattern_recognition,
+        'Desain Algoritma': s.algorithm_design,
+        'Status': s.status,
+        'Tugas Selesai': s.already_done,
+        'Belum Dikerjakan': s.not_done,
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ringkasan), 'Ringkasan');
+
+      const misi = data.learning.map((l) => ({
+        'Nama Siswa': l.student_name,
+        'Pertemuan': l.pertemuan,
+        'Nilai Akhir': l.final_score,
+        'Akurasi (100−15×error)': l.accuracy,
+        'Efisiensi (dari percobaan)': l.efficiency,
+        'Jumlah Percobaan': l.attempts,
+        'Remidi': l.is_remedial ? `Ya (maks KKM ${data.kkm})` : 'Tidak',
+        [`Ketuntasan (KKM ${data.kkm})`]: l.tuntas ? 'Tuntas' : 'Belum Tuntas',
+        'Waktu Kirim': fmtDate(l.submitted_at),
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(misi), 'Misi Belajar');
+
+      const proyek = data.projects.map((p) => ({
+        'Nama Siswa': p.student_name,
+        'Tugas Proyek': p.task,
+        'Nilai Guru (terbobot)': p.teacher_score ?? 'Belum dinilai',
+        'Rincian Rubrik': p.rubrik_scores
+          ? Object.entries(p.rubrik_scores)
+              .map(([k, v]) => {
+                const bobot = (p.rubrik || []).find((c) => criterionName(c) === k)?.bobot;
+                return `${k}${bobot ? ` (bobot ${bobot}%)` : ''}: ${v}`;
+              })
+              .join('; ')
+          : '-',
+        'Komentar Guru': p.teacher_comment || '-',
+        'Publik di Galeri': p.is_published ? 'Ya' : 'Tidak',
+        'Waktu Kirim': fmtDate(p.submitted_at),
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(proyek), 'Proyek');
+
+      const ctRows = data.ct.map((c) => ({
+        'Nama Siswa': c.student_name,
+        'Pertemuan': c.pertemuan,
+        'Dekomposisi': c.decomposition,
+        'Abstraksi': c.abstraction,
+        'Pengenalan Pola': c.pattern_recognition,
+        'Desain Algoritma': c.algorithm_design,
+        'Komposit (rata-rata 4 pilar)': c.composite,
+        'Waktu': fmtDate(c.recorded_at),
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ctRows), 'Skor CT');
+
+      // Transparansi penuh: aturan perhitungan nilai ikut dalam file
+      const aturan = [
+        { 'Aturan Penilaian WebCraft': `KKM (Kriteria Ketuntasan Minimal): ${data.kkm}` },
+        { 'Aturan Penilaian WebCraft': 'Nilai Misi Belajar = (Akurasi + Efisiensi) ÷ 2 — divalidasi otomatis oleh server' },
+        { 'Aturan Penilaian WebCraft': 'Akurasi = 100 − 15 × jumlah error struktur pada karya final (minimal 0)' },
+        { 'Aturan Penilaian WebCraft': 'Efisiensi = ≤1 percobaan: 100 · 2: 90 · 3: 80 · 4: 70 · ≥5: 60' },
+        { 'Aturan Penilaian WebCraft': `Remidi: nilai < KKM dapat dikerjakan ulang; nilai pengulangan maksimal ${data.kkm}` },
+        { 'Aturan Penilaian WebCraft': 'Nilai Proyek = rata-rata terbobot rubrik: Σ(skor × bobot) ÷ Σ(bobot) — dinilai guru' },
+        { 'Aturan Penilaian WebCraft': 'Skor CT Komposit = rata-rata 4 pilar (Dekomposisi, Abstraksi, Pola, Algoritma), skala 0–100' },
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(aturan), 'Aturan Nilai');
+
+      XLSX.writeFile(wb, `Rekap Nilai - ${data.room.name}.xlsx`);
+    } catch (err) {
+      console.error('Gagal mengekspor Excel:', err);
+      alert('Gagal mengekspor Excel. Coba lagi.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Fetch rooms list on mount
   useEffect(() => {
@@ -118,11 +210,22 @@ export default function PenilaianAnalitik() {
   return (
     <div className="w-full px-4 md:px-6 py-8 flex flex-col gap-8 text-left max-w-[1200px] mx-auto">
       {/* Title */}
-      <div>
-        <h2 className="font-fredoka text-3xl font-bold text-slate-800 mb-1">Penilaian & Analitik Kelas</h2>
-        <p className="font-nunito text-slate-650 font-semibold">
-          Pantau rekapitulasi nilai, statistik pencapaian kognitif, dan peta kesulitan berpikir komputasional siswa secara real-time.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h2 className="font-fredoka text-3xl font-bold text-slate-800 mb-1">Penilaian & Analitik Kelas</h2>
+          <p className="font-nunito text-slate-650 font-semibold">
+            Pantau rekapitulasi nilai, statistik pencapaian kognitif, dan peta kesulitan berpikir komputasional siswa secara real-time.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          disabled={!activeRoom || isExporting}
+          className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-2 border-[#0F172A] font-fredoka text-sm font-bold rounded-xl shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <i className={`ti ${isExporting ? 'ti-loader animate-spin' : 'ti-file-spreadsheet'} text-base`} />
+          {isExporting ? 'Menyiapkan...' : 'Unduh Excel'}
+        </button>
       </div>
 
       {/* Custom Class Selector Dropdown */}

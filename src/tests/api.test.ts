@@ -405,6 +405,28 @@ describe("rekap & AI offline", () => {
     expect(grades[0].not_done).toBe(0);
   });
 
+  it("ekspor rekap guru: JSON lengkap (siswa ditolak 403)", async () => {
+    const { GET } = await import("@/app/api/rooms/[roomId]/export/route");
+    const denied = await GET(
+      getReq(`/api/rooms/${roomId}/export`, siswaToken),
+      params({ roomId }),
+    );
+    expect(denied.status).toBe(403);
+
+    const res = await GET(
+      getReq(`/api/rooms/${roomId}/export`, guruToken),
+      params({ roomId }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.kkm).toBe(70);
+    expect(data.students).toHaveLength(1);
+    expect(data.learning).toHaveLength(1);
+    expect(data.learning[0].is_remedial).toBe(true);
+    expect(data.projects).toHaveLength(1);
+    expect(data.projects[0].teacher_score).toBe(92);
+  });
+
   it("AI tutor offline memberi hint; validate-code offline menolak placeholder", async () => {
     const { POST: tutor } = await import("@/app/api/ai/tutor/route");
     const hintRes = await tutor(
