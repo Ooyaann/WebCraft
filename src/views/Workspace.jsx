@@ -13,6 +13,7 @@ import WorkspaceOnboarding from '../components/workspace/WorkspaceOnboarding';
 import { aiService } from '../services/aiService';
 import api from '../services/api';
 import { confirmDialog } from '../components/common/confirm';
+import { toast } from '../components/common/toast';
 
 const DEFAULT_LEVEL_CONFIG = {
   id: 'easy-1',
@@ -198,7 +199,7 @@ export default function Workspace({ isSandbox = false }) {
   // Block teachers from entering workspace unless in sandbox
   useEffect(() => {
     if (!isSandbox && user && user.role === 'guru') {
-      alert("Akses Ditolak: Sebagai Guru (Fasilitator), Anda tidak dapat masuk ke lembar kerja praktik mandiri siswa.");
+      toast.error("Sebagai Guru, Anda tidak dapat masuk ke lembar kerja praktik mandiri siswa.");
       navigate('/ruang-belajar');
     }
   }, [user, navigate, isSandbox]);
@@ -311,7 +312,7 @@ export default function Workspace({ isSandbox = false }) {
       setValidationErrors([]);
       setShowValidationResult(true);
       triggerConfetti();
-      alert("Proyek Kreatif: Kode Anda siap dikirim! Klik 'Kirim Hasil Misi' untuk mengumpulkan.");
+      toast.success("Proyek Kreatif: Kode Anda siap dikirim! Klik 'Kirim Hasil Misi' untuk mengumpulkan.");
       return;
     }
 
@@ -797,7 +798,7 @@ export default function Workspace({ isSandbox = false }) {
                 onClick={() => {
                   const codeStr = toFormattedCode(ast);
                   navigator.clipboard.writeText(codeStr);
-                  alert(isCompact ? "Kode disalin!" : "Kode HTML berhasil disalin ke clipboard!");
+                  toast.success(isCompact ? "Kode disalin!" : "Kode HTML berhasil disalin ke clipboard!");
                 }}
                 className={`bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-2 border-[#0F172A] font-fredoka font-bold shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
                   isCompact ? 'px-2.5 py-1 text-[9.5px] rounded-lg' : 'px-6 py-2.5 rounded-xl text-xs'

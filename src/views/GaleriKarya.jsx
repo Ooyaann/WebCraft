@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useStore } from '../store/useStore';
 import { toHTML, toFormattedCode } from '../services/astUtils';
 import { KKM, weightedRubricScore, criterionName } from '../lib/scoring';
+import { toast } from '../components/common/toast';
 
 function KaryaPreviewMini({ ast }) {
   let parsedAst = [];
@@ -138,7 +139,7 @@ export default function GaleriKarya() {
       })
       .catch(err => {
         if (err.response?.status === 400) {
-          alert("Kamu sudah memberikan apresiasi untuk karya ini!");
+          toast.info("Kamu sudah memberikan apresiasi untuk karya ini!");
         } else {
           console.error("Error appreciating gallery item", err);
         }
@@ -185,7 +186,7 @@ export default function GaleriKarya() {
       })
       .catch(err => {
         console.error("Error grading project", err);
-        alert("Gagal menyimpan penilaian. Coba lagi.");
+        toast.error("Gagal menyimpan penilaian. Coba lagi.");
       });
   };
 

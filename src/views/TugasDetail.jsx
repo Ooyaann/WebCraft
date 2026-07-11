@@ -3,6 +3,7 @@ import { useParams, useNavigate } from '@/lib/router-compat';
 import { useStore } from '../store/useStore';
 import api from '../services/api';
 import CTJourneyModal from '../components/ct-journey/CTJourneyModal';
+import { toast } from '../components/common/toast';
 import { KKM } from '../lib/scoring';
 
 export default function TugasDetail() {
@@ -100,7 +101,7 @@ export default function TugasDetail() {
     } else if (projectTaskId) {
       navigate(`/workspace/${projectTaskId}`);
     } else {
-      alert("Tugas ini tidak memiliki modul coding yang aktif.");
+      toast.error("Tugas ini tidak memiliki modul coding yang aktif.");
     }
   };
 

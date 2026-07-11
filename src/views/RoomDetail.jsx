@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore';
 import api from '../services/api';
 import { KKM } from '../lib/scoring';
 import { confirmDialog } from '../components/common/confirm';
+import { toast } from '../components/common/toast';
 
 export default function RoomDetail() {
   const { roomId } = useParams();
@@ -82,7 +83,7 @@ export default function RoomDetail() {
       setCtSteps(Array.isArray(ct.algorithm_steps) ? ct.algorithm_steps : []);
     } catch (err) {
       console.error('Gagal memuat aturan validasi:', err);
-      alert('Gagal memuat aturan validasi tugas ini.');
+      toast.error('Gagal memuat aturan validasi tugas ini.');
       setShowRulesModal(false);
     } finally {
       setRulesLoading(false);
@@ -126,7 +127,7 @@ export default function RoomDetail() {
       return { ...base, selector: (r.selector || '').trim() };
     });
     if (cleaned.some(r => !r.error_message)) {
-      alert('Setiap aturan harus memiliki pesan kesalahan.');
+      toast.error('Setiap aturan harus memiliki pesan kesalahan.');
       return;
     }
     setRulesSaving(true);
@@ -139,7 +140,7 @@ export default function RoomDetail() {
       setShowRulesModal(false);
     } catch (err) {
       console.error('Gagal menyimpan aturan:', err);
-      alert('Gagal menyimpan aturan validasi.');
+      toast.error('Gagal menyimpan aturan validasi.');
     } finally {
       setRulesSaving(false);
     }
@@ -267,7 +268,7 @@ export default function RoomDetail() {
       setShowAnnouncementModal(false);
     } catch (err) {
       console.error("Gagal menyimpan pengumuman:", err);
-      alert("Terjadi kesalahan saat memperbarui pengumuman.");
+      toast.error("Terjadi kesalahan saat memperbarui pengumuman.");
     } finally {
       setIsActionLoading(false);
     }
@@ -297,7 +298,7 @@ export default function RoomDetail() {
       loadData();
     } catch (err) {
       console.error("Gagal membuat pertemuan:", err);
-      alert("Terjadi kesalahan saat menambahkan pertemuan.");
+      toast.error("Terjadi kesalahan saat menambahkan pertemuan.");
     } finally {
       setIsActionLoading(false);
     }
@@ -328,7 +329,7 @@ export default function RoomDetail() {
       loadData();
     } catch (err) {
       console.error("Gagal mengupdate pertemuan:", err);
-      alert("Terjadi kesalahan saat menyimpan perubahan.");
+      toast.error("Terjadi kesalahan saat menyimpan perubahan.");
     } finally {
       setIsActionLoading(false);
     }
@@ -347,7 +348,7 @@ export default function RoomDetail() {
       loadData();
     } catch (err) {
       console.error("Gagal menghapus pertemuan:", err);
-      alert("Gagal menghapus pertemuan. Silakan coba lagi.");
+      toast.error("Gagal menghapus pertemuan. Silakan coba lagi.");
     }
   };
 
@@ -677,7 +678,7 @@ export default function RoomDetail() {
                       {resetInfo.password}
                     </code>
                     <button
-                      onClick={() => { navigator.clipboard.writeText(resetInfo.password); alert('Password disalin!'); }}
+                      onClick={() => { navigator.clipboard.writeText(resetInfo.password); toast.success('Password disalin!'); }}
                       className="px-3 py-2 bg-emerald-500 text-white border-2 border-[#0F172A] rounded-lg font-fredoka text-xs font-bold cursor-pointer shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 transition-all"
                     >
                       <i className="ti ti-copy" />
@@ -717,7 +718,7 @@ export default function RoomDetail() {
                         setResettingId(m.id);
                         api.post(`/rooms/${roomId}/members/${m.id}/reset-password`)
                           .then(res => setResetInfo({ name: res.data.name, password: res.data.new_password }))
-                          .catch(() => alert('Gagal me-reset password. Coba lagi.'))
+                          .catch(() => toast.error('Gagal me-reset password. Coba lagi.'))
                           .finally(() => setResettingId(null));
                       }}
                       disabled={resettingId === m.id}

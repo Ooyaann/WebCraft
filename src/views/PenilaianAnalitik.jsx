@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import api from '../services/api';
 import { aiService } from '../services/aiService';
 import { criterionName } from '../lib/scoring';
+import { toast } from '../components/common/toast';
 
 export default function PenilaianAnalitik() {
   const { activeRoom, setActiveRoom } = useStore();
@@ -99,7 +100,7 @@ export default function PenilaianAnalitik() {
       XLSX.writeFile(wb, `Rekap Nilai - ${data.room.name}.xlsx`);
     } catch (err) {
       console.error('Gagal mengekspor Excel:', err);
-      alert('Gagal mengekspor Excel. Coba lagi.');
+      toast.error('Gagal mengekspor Excel. Coba lagi.');
     } finally {
       setIsExporting(false);
     }

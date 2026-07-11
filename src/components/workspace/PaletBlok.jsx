@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../../store/useStore';
+import { toast } from '../common/toast';
 
 const BLOCK_GROUPS = [
   {
@@ -117,7 +118,7 @@ export default function PaletBlok({ isCompact = false }) {
   const handleAdd = (type) => {
     // Prevent adding multiple body-roots
     if (type === 'body' && ast.some(n => n.type === 'body')) {
-      alert("Tag <body> utama sudah ada di workspace!");
+      toast.info("Tag <body> utama sudah ada di workspace!");
       return;
     }
 
