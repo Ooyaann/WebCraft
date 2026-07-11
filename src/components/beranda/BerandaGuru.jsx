@@ -68,7 +68,7 @@ export default function BerandaGuru({ user }) {
 
       {/* Metrics Row */}
       <section className="neo-stagger-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-tr from-blue-500 to-indigo-650 text-white border-4 border-[#0F172A] p-5.5 rounded-2xl shadow-[6px_6px_0px_#0F172A] flex items-center justify-between gap-4 hover:-translate-y-0.5 transition-all">
+        <div className="bg-gradient-to-tr from-blue-500 to-indigo-700 text-white border-4 border-[#0F172A] p-5.5 rounded-2xl shadow-[6px_6px_0px_#0F172A] flex items-center justify-between gap-4 hover:-translate-y-0.5 transition-all">
           <div className="flex flex-col gap-1.5">
             <span className="font-fredoka text-[11px] font-black text-indigo-100 uppercase tracking-widest block">Kelas Dikelola</span>
             <span className="font-fredoka text-3xl md:text-4xl font-black text-white">{rooms.length}</span>
