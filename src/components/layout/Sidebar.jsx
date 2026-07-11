@@ -200,7 +200,7 @@ export default function Sidebar() {
   /* ─────────── Mobile: Header + Drawer (unchanged) ─────────── */
   const mobileHeader = (
     <header 
-      className={`md:hidden w-full border-b-4 border-[#0F172A] px-4 py-3 flex justify-between items-center z-45 sticky top-0`}
+      className={`lg:hidden w-full border-b-4 border-[#0F172A] px-4 py-3 flex justify-between items-center z-45 sticky top-0`}
       style={{ background: activeGradient }}
     >
       <div
@@ -329,7 +329,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop Version */}
-      <div className="hidden md:block">{desktopSidebar}</div>
+      <div className="hidden lg:block">{desktopSidebar}</div>
 
       {/* Mobile Version */}
       {mobileHeader}

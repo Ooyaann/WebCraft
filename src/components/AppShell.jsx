@@ -84,7 +84,7 @@ export default function AppShell({ children }) {
   const isWorkspace = pathname.startsWith('/workspace/') || pathname === '/sandbox';
 
   return (
-    <div className="min-h-screen bg-transparent text-[#0F172A] flex flex-col md:flex-row font-nunito selection:bg-[#FACC15] neo-cursor-sparkle">
+    <div className="min-h-screen bg-transparent text-[#0F172A] flex flex-col lg:flex-row font-nunito selection:bg-[#FACC15] neo-cursor-sparkle">
       {/* Dynamic Page Loader Splash Screen */}
       {showLoader && (
         <div
@@ -129,7 +129,7 @@ export default function AppShell({ children }) {
 
       {/* Main Content Wrapper */}
       <div
-        className={`flex-1 flex flex-col min-w-0 relative transition-all duration-300 ${isWorkspace ? 'md:pl-0' : 'md:pl-65'
+        className={`flex-1 flex flex-col min-w-0 relative transition-all duration-300 ${isWorkspace ? 'lg:pl-0' : 'lg:pl-[272px]'
           }`}
       >
         <main className={`flex-grow w-full relative ${isWorkspace ? '' : 'min-h-screen'}`}>
