@@ -3,13 +3,7 @@ import { useStore } from '../../store/useStore';
 import KanvasItem from './KanvasItem';
 
 export default function Kanvas({ isCompact = false }) {
-  const { ast, resetWorkspace } = useStore();
-
-  const handleReset = () => {
-    if (window.confirm("Apakah Anda yakin ingin mengosongkan area kerja? Semua pekerjaan Anda saat ini akan hilang.")) {
-      resetWorkspace();
-    }
-  };
+  const { ast } = useStore();
 
   return (
     <div className={`bg-white h-full flex flex-col overflow-y-auto text-left ${isCompact ? 'p-2 gap-2' : 'p-4 gap-4'}`}>

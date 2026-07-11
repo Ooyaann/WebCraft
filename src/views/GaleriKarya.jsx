@@ -290,7 +290,7 @@ export default function GaleriKarya() {
             <select
               value={kelasFilter}
               onChange={(e) => setKelasFilter(e.target.value)}
-              className="px-3 py-1.5 border-2 border-[#0F172A] rounded-xl font-nunito font-bold text-xs bg-white shadow-[2px_2px_0px_#0F172A] cursor-pointer focus:outline-none"
+              className="neo-select pl-3 py-1.5 border-2 border-[#0F172A] rounded-xl font-nunito font-bold text-xs bg-white shadow-[2px_2px_0px_#0F172A] focus:outline-none"
             >
               <option value="semua">Semua Kelas</option>
               {kelasOptions.map((k) => (
@@ -617,14 +617,14 @@ export default function GaleriKarya() {
                   />
                 </div>
                 <div className="w-full md:w-auto flex gap-3">
-                  <select
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value)}
-                    className="px-4 py-2 border-2 border-[#0F172A] rounded-xl font-fredoka font-bold bg-white text-slate-700 focus:outline-none"
-                  >
-                    <option value="latest">Terbaru</option>
-                    <option value="popular">Terpopuler (Like)</option>
-                  </select>
+                    <select
+                      value={sortKey}
+                      onChange={(e) => setSortKey(e.target.value)}
+                      className="neo-select w-full md:w-auto pl-4 py-2 border-2 border-[#0F172A] rounded-xl font-fredoka font-bold bg-white text-slate-700 shadow-[2.5px_2.5px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all focus:outline-none"
+                    >
+                      <option value="latest">Terbaru</option>
+                      <option value="popular">Terpopuler (Like)</option>
+                    </select>
                 </div>
               </div>
 

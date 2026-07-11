@@ -12,6 +12,7 @@ import CTScoreRadar from '../components/ai/CTScoreRadar';
 import WorkspaceOnboarding from '../components/workspace/WorkspaceOnboarding';
 import { aiService } from '../services/aiService';
 import api from '../services/api';
+import { confirmDialog } from '../components/common/confirm';
 
 const DEFAULT_LEVEL_CONFIG = {
   id: 'easy-1',
@@ -656,8 +657,14 @@ export default function Workspace({ isSandbox = false }) {
 
                   {/* Exit / Back Button */}
                   <button
-                    onClick={() => {
-                      if (confirm("Apakah Anda yakin ingin keluar? Progres koding yang belum disubmit mungkin hilang.")) {
+                    onClick={async () => {
+                      if (await confirmDialog({
+                        title: 'Keluar Workspace',
+                        message: 'Apakah Anda yakin ingin keluar? Progres koding yang belum disubmit mungkin hilang.',
+                        danger: true,
+                        confirmText: 'Keluar',
+                        cancelText: 'Batal'
+                      })) {
                         navigate(isSandbox ? '/' : '/ruang-belajar');
                       }
                     }}
@@ -762,8 +769,14 @@ export default function Workspace({ isSandbox = false }) {
             <div className="flex gap-2 w-auto shrink-0">
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(isCompact ? "Reset kanvas?" : "Apakah Anda yakin ingin mengatur ulang kanvas dan mulai dari awal?")) {
+                onClick={async () => {
+                  if (await confirmDialog({
+                    title: 'Atur Ulang Kanvas',
+                    message: isCompact ? "Reset kanvas?" : "Apakah Anda yakin ingin mengatur ulang kanvas dan mulai dari awal?",
+                    danger: true,
+                    confirmText: 'Reset',
+                    cancelText: 'Batal'
+                  })) {
                     resetWorkspace();
                   }
                 }}

@@ -11,6 +11,7 @@ import api from '../services/api';
 import MouseTrail from './common/MouseTrail';
 import BackgroundCodingShapes from './common/BackgroundCodingShapes';
 import WebCraftLogo from './common/WebCraftLogo';
+import { ConfirmHost } from './common/confirm';
 
 export default function AppShell({ children }) {
   const { setUser, setActiveRoom, setAuthChecked } = useStore();
@@ -104,6 +105,9 @@ export default function AppShell({ children }) {
           </div>
         </div>
       )}
+
+      {/* Dialog konfirmasi global (pengganti window.confirm) */}
+      <ConfirmHost />
 
       {/* Interactive Cursor Trail */}
       <MouseTrail />

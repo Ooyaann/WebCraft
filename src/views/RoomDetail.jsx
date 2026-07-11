@@ -4,6 +4,7 @@ import { useParams, useNavigate } from '@/lib/router-compat';
 import { useStore } from '../store/useStore';
 import api from '../services/api';
 import { KKM } from '../lib/scoring';
+import { confirmDialog } from '../components/common/confirm';
 
 export default function RoomDetail() {
   const { roomId } = useParams();
@@ -334,7 +335,13 @@ export default function RoomDetail() {
   };
 
   const handleDeletePertemuan = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus pertemuan ini? Semua tugas dan submission siswa terkait akan ikut terhapus secara permanen.")) return;
+    const ok = await confirmDialog({
+      title: 'Hapus Pertemuan',
+      message: 'Yakin ingin menghapus pertemuan ini? Semua tugas dan submission siswa terkait akan ikut terhapus secara permanen.',
+      danger: true,
+      confirmText: 'Hapus Pertemuan',
+    });
+    if (!ok) return;
     try {
       await api.delete(`/pertemuan/${id}`);
       loadData();
@@ -699,8 +706,14 @@ export default function RoomDetail() {
                       </div>
                     </div>
                     <button
-                      onClick={() => {
-                        if (!confirm(`Reset password untuk ${m.name}? Password lama tidak berlaku lagi.`)) return;
+                      onClick={async () => {
+                        const ok = await confirmDialog({
+                          title: 'Reset Password Siswa',
+                          message: `Reset password untuk ${m.name}? Password lama tidak berlaku lagi dan siswa akan keluar dari semua perangkat.`,
+                          confirmText: 'Reset Password',
+                          icon: 'ti-key',
+                        });
+                        if (!ok) return;
                         setResettingId(m.id);
                         api.post(`/rooms/${roomId}/members/${m.id}/reset-password`)
                           .then(res => setResetInfo({ name: res.data.name, password: res.data.new_password }))
@@ -1189,7 +1202,11 @@ export default function RoomDetail() {
                 rulesList.map((rule, i) => (
                   <div key={i} className="border-2 border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <select value={rule.type} onChange={(e) => updateRule(i, 'type', e.target.value)} className="border-2 border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold bg-white cursor-pointer">
+                      <select
+                        value={rule.type}
+                        onChange={(e) => updateRule(i, 'type', e.target.value)}
+                        className="neo-select border-2 border-[#0F172A] rounded-lg px-2.5 py-1.5 text-xs font-bold bg-white shadow-[1.5px_1.5px_0px_#0F172A] focus:outline-none"
+                      >
                         <option value="exists">Elemen harus ada</option>
                         <option value="child_of">Elemen di dalam elemen lain</option>
                       </select>
