@@ -580,38 +580,38 @@ export default function RoomDetail() {
 
                     <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                       {isTeacher ? (
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-wrap gap-1.5 md:gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleTogglePublish(pert)}
-                            className={`px-3 py-1.5 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer ${pert.is_published ? 'bg-indigo-50 text-indigo-750' : 'bg-slate-50 text-slate-500'
+                            className={`px-2 sm:px-3 py-1.5 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer ${pert.is_published ? 'bg-indigo-50 text-indigo-750' : 'bg-slate-50 text-slate-500'
                               }`}
                           >
-                            <i className={pert.is_published ? "ti ti-eye" : "ti ti-eye-off"} />
-                            {pert.is_published ? 'Sembunyikan' : 'Terbitkan'}
+                            <i className={pert.is_published ? "ti ti-eye text-xs" : "ti ti-eye-off text-xs"} />
+                            <span className="hidden sm:inline">{pert.is_published ? 'Sembunyikan' : 'Terbitkan'}</span>
                           </button>
 
                           <button
                             onClick={() => handleOpenEditModal(pert)}
-                            className="px-3 py-1.5 bg-yellow-400 text-[#0F172A] border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 sm:px-3 py-1.5 bg-yellow-400 text-[#0F172A] border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
                           >
-                            <i className="ti ti-edit" />
-                            Kelola
+                            <i className="ti ti-edit text-xs" />
+                            <span className="hidden sm:inline">Kelola</span>
                           </button>
 
                           <button
                             onClick={() => handleOpenRulesModal(pert)}
-                            className="px-3 py-1.5 bg-sky-50 text-sky-700 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 sm:px-3 py-1.5 bg-sky-50 text-sky-700 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
                           >
-                            <i className="ti ti-list-check" />
-                            Aturan
+                            <i className="ti ti-list-check text-xs" />
+                            <span className="hidden sm:inline">Aturan</span>
                           </button>
 
                           <button
                             onClick={() => handleDeletePertemuan(pert.id)}
-                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border-2 border-red-200 font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_rgba(239,68,68,0.15)] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2 sm:px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border-2 border-red-200 font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_rgba(239,68,68,0.15)] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
                           >
-                            <i className="ti ti-trash" />
-                            Hapus
+                            <i className="ti ti-trash text-xs" />
+                            <span className="hidden sm:inline">Hapus</span>
                           </button>
                         </div>
                       ) : isCompleted && isRemedial ? (
@@ -643,8 +643,8 @@ export default function RoomDetail() {
 
       {/* Members & Reset Password Modal */}
       {showMembersModal && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-start overflow-y-auto p-4 pt-10 md:pt-16 pb-12">
-          <div className="w-full max-w-md bg-white border-4 border-[#0F172A] rounded-[24px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center overflow-y-auto p-2 sm:p-4">
+          <div className="w-full max-w-md bg-white border-4 border-[#0F172A] rounded-[24px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative max-h-[92vh] overflow-hidden">
             <div className="bg-[#3B82F6] text-white px-6 py-4 flex justify-between items-center border-b-4 border-[#0F172A] rounded-t-[20px]">
               <h3 className="font-fredoka text-base font-bold flex items-center gap-1.5">
                 <i className="ti ti-users text-lg" />
@@ -724,8 +724,8 @@ export default function RoomDetail() {
 
       {/* Classroom Announcement Modal */}
       {showAnnouncementModal && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-start overflow-y-auto p-4 pt-10 md:pt-16 pb-12">
-          <div className="w-full max-w-md bg-white border-4 border-[#0F172A] rounded-[24px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center overflow-y-auto p-2 sm:p-4">
+          <div className="w-full max-w-md bg-white border-4 border-[#0F172A] rounded-[24px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative max-h-[92vh] overflow-hidden">
             <div className="bg-[#FACC15] text-[#0F172A] px-6 py-4 flex justify-between items-center border-b-4 border-[#0F172A] rounded-t-[20px]">
               <h3 className="font-fredoka text-base font-bold flex items-center gap-1.5">
                 <i className="ti ti-speakerphone text-lg" />
@@ -777,8 +777,8 @@ export default function RoomDetail() {
 
       {/* Add / Edit Meeting Modals */}
       {(showAddModal || showEditModal) && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-start overflow-y-auto p-4 md:p-6 pt-10 md:pt-16 pb-12">
-          <div className="w-full max-w-2xl bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative overflow-hidden max-h-[85vh]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-center overflow-y-auto p-2 sm:p-4">
+          <div className="w-full max-w-2xl bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] flex flex-col my-auto relative overflow-hidden max-h-[92vh]">
             <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white px-6 py-4.5 flex justify-between items-center border-b-4 border-[#0F172A] shrink-0 rounded-t-[24px]">
               <h3 className="font-fredoka text-base font-bold flex items-center gap-1.5">
                 <i className="ti ti-edit-circle text-lg" />
@@ -1123,8 +1123,8 @@ export default function RoomDetail() {
 
       {/* Validator Rules Editor Modal (Teacher) */}
       {showRulesModal && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-start overflow-y-auto p-4 md:p-6 pt-10 md:pt-16 pb-12" onClick={() => !rulesSaving && setShowRulesModal(false)}>
-          <div className="bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] w-full max-w-2xl max-h-[85vh] flex flex-col my-auto relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center overflow-y-auto p-2 sm:p-4" onClick={() => !rulesSaving && setShowRulesModal(false)}>
+          <div className="bg-white border-4 border-[#0F172A] rounded-[28px] shadow-[8px_8px_0px_#0F172A] w-full max-w-2xl max-h-[92vh] flex flex-col my-auto relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4.5 border-b-4 border-[#0F172A] bg-sky-50 rounded-t-[24px]">
               <div className="text-left">
                 <h3 className="font-fredoka text-base font-bold text-[#0F172A] flex items-center gap-2"><i className="ti ti-settings text-sky-600 text-lg animate-spin-slow" /> Pengaturan Misi</h3>
