@@ -132,7 +132,7 @@ export default function AppShell({ children }) {
 
       {/* Main Content Wrapper */}
       <div
-        className={`flex-1 flex flex-col min-w-0 relative transition-all duration-300 ${isWorkspace ? 'md:pl-0' : 'md:pl-72'
+        className={`flex-1 flex flex-col min-w-0 relative transition-all duration-300 ${isWorkspace ? 'md:pl-0' : 'md:pl-60'
           }`}
       >
         <main className={`flex-grow w-full relative ${isWorkspace ? '' : 'min-h-screen'}`}>
