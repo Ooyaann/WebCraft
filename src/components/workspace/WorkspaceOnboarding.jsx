@@ -12,6 +12,15 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
+  // ponytail: compact flag for short screens (mobile landscape)
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => {
+    const check = () => setIsCompact(window.innerHeight <= 500);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   if (!isOpen) return null;
 
   const handleNext = () => {
@@ -42,7 +51,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
       content: (
         <div className="flex flex-col items-center text-center p-2">
           {/* Welcome Interactive Animation */}
-          <div className="relative w-full h-44 bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-center shadow-inner mb-4">
+          <div className={`relative w-full bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-center shadow-inner ${isCompact ? 'h-24 mb-2' : 'h-44 mb-4'}`}>
             {/* Grid Pattern */}
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:16px_16px]"></div>
             
@@ -103,7 +112,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
             </motion.div>
           </div>
 
-          <p className="font-nunito text-sm text-slate-700 leading-relaxed font-bold">
+          <p className={`font-nunito text-slate-700 leading-relaxed font-bold ${isCompact ? 'text-[10px]' : 'text-sm'}`}>
             Di WebCraft, kamu tidak perlu mengetik kode yang rumit secara manual. Kamu akan merakit struktur HTML dan gaya CSS menggunakan <span className="text-[#3B82F6]">Blok Visual</span> yang menyenangkan, sekaligus mengasah kemampuan berpikir logismu!
           </p>
         </div>
@@ -115,7 +124,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
       content: (
         <div className="flex flex-col items-center text-center p-2">
           {/* Animated Drag-and-Drop Mockup */}
-          <div className="relative w-full h-44 bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-between px-6 shadow-inner mb-4">
+          <div className={`relative w-full bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-between px-6 shadow-inner ${isCompact ? 'h-24 mb-2' : 'h-44 mb-4'}`}>
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
             {/* Left: Palette mockup */}
@@ -203,7 +212,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
             </div>
           </div>
 
-          <p className="font-nunito text-sm text-slate-700 leading-relaxed font-bold">
+          <p className={`font-nunito text-slate-700 leading-relaxed font-bold ${isCompact ? 'text-[10px]' : 'text-sm'}`}>
             Seret blok dari <span className="text-[#3B82F6]">Palet Blok</span> sebelah kiri, lalu tempatkan ke dalam <span className="text-[#EC4899]">Kanvas Kode</span> di bagian tengah. Susun secara berurutan atau masukkan blok ke dalam wadah lainnya (nesting)!
           </p>
         </div>
@@ -215,7 +224,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
       content: (
         <div className="flex flex-col items-center text-center p-2">
           {/* Animated CT Steps */}
-          <div className="relative w-full h-44 bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-center shadow-inner mb-4">
+          <div className={`relative w-full bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex items-center justify-center shadow-inner ${isCompact ? 'h-24 mb-2' : 'h-44 mb-4'}`}>
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
             <div className="flex gap-2 items-center justify-center w-full px-4 z-10">
@@ -247,7 +256,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
             </div>
           </div>
 
-          <p className="font-nunito text-sm text-slate-700 leading-relaxed font-bold">
+          <p className={`font-nunito text-slate-700 leading-relaxed font-bold ${isCompact ? 'text-[10px]' : 'text-sm'}`}>
             Sebelum merakit blok di level tertentu, kamu akan diajak melatih logika berpikir melalui tantangan <span className="text-[#EC4899]">CT Journey</span>: memilah masalah (Dekomposisi), mengabaikan detail tak penting (Abstraksi), mengenali pola, dan menyusun langkah penyelesaian (Algoritma).
           </p>
         </div>
@@ -259,7 +268,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
       content: (
         <div className="flex flex-col items-center text-center p-2">
           {/* Animated AI Chat Mockup */}
-          <div className="relative w-full h-44 bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex flex-col p-3 shadow-inner mb-4">
+          <div className={`relative w-full bg-[#F0F7FF] border-2 border-[#0F172A] rounded-2xl overflow-hidden flex flex-col p-3 shadow-inner ${isCompact ? 'h-24 mb-2' : 'h-44 mb-4'}`}>
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
             {/* Simulated Chat Bubble */}
@@ -299,7 +308,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
             </div>
           </div>
 
-          <p className="font-nunito text-sm text-slate-700 leading-relaxed font-bold">
+          <p className={`font-nunito text-slate-700 leading-relaxed font-bold ${isCompact ? 'text-[10px]' : 'text-sm'}`}>
             Gunakan tombol <span className="text-[#6366F1]">Cek Logika Kode (AI)</span> setelah menyusun blok. Tutor AI tidak akan langsung memberi jawaban, melainkan mengajukan pertanyaan penuntun (Sokratik) untuk membantumu memecahkan teka-teki logika koding secara mandiri!
           </p>
         </div>
@@ -313,10 +322,10 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
         initial={{ scale: 0.92, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.92, opacity: 0 }}
-        className="relative bg-white w-full max-w-lg border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] overflow-hidden flex flex-col"
+        className="relative bg-white w-full max-w-lg border-4 border-[#0F172A] rounded-2xl shadow-[6px_6px_0px_#0F172A] overflow-hidden flex flex-col max-h-[95vh]"
       >
         {/* Onboarding Header */}
-        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white px-5 py-4 border-b-4 border-[#0F172A] flex justify-between items-center">
+        <div className={`bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white border-b-4 border-[#0F172A] flex justify-between items-center ${isCompact ? 'px-3 py-2' : 'px-5 py-4'}`}>
           <div className="flex items-center gap-2">
             <i className="ti ti-bulb text-xl text-yellow-300 animate-pulse" />
             <div>
@@ -333,7 +342,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
         </div>
 
         {/* Dynamic Slide Content Container */}
-        <div className="p-6 overflow-y-auto max-h-[70vh]">
+        <div className={`overflow-y-auto ${isCompact ? 'p-3 max-h-[60vh]' : 'p-6 max-h-[70vh]'}`}>
           <h2 className="font-fredoka text-base font-black text-slate-900 text-center mb-1">
             {steps[currentStep].title}
           </h2>
@@ -355,7 +364,7 @@ export default function WorkspaceOnboarding({ isOpen, onClose }) {
         </div>
 
         {/* Onboarding Footer */}
-        <div className="bg-slate-50 border-t-4 border-[#0F172A] p-4 flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0">
+        <div className={`bg-slate-50 border-t-4 border-[#0F172A] flex flex-col sm:flex-row items-center justify-between shrink-0 ${isCompact ? 'p-2 gap-2' : 'p-4 gap-4'}`}>
           {/* Don't show again Checkbox */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
