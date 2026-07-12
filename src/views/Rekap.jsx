@@ -309,11 +309,11 @@ export default function Rekap() {
             <RekapArtifact ast={project.final_ast} />
           </div>
 
-          {project.teacher_score !== null && project.rubrik_scores_json && (
+          {project.teacher_score !== null && project.rubrik_scores && (
             <div className="flex flex-col gap-3">
               <p className="font-fredoka text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Detail Capaian Berpikir Komputasional (CT)</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Object.entries(project.rubrik_scores_json).map(([kriteria, skor]) => {
+                {Object.entries(project.rubrik_scores).map(([kriteria, skor]) => {
                   const pillar = CT_PILLARS.find(p => p.label === kriteria);
                   const lvlInfo = scoreToLevel(skor);
                   const pillarColor = {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from '@/lib/router-compat';
 import { useStore } from '../store/useStore';
 import api from '../services/api';
 import CTJourneyModal from '../components/ct-journey/CTJourneyModal';
-import CTRubricPanel from '../components/ct-rubric/CTRubricPanel';
+
 import { toast } from '../components/common/toast';
 import { KKM } from '../lib/scoring';
 
@@ -19,7 +19,6 @@ export default function TugasDetail() {
   const [journeyAutoOpened, setJourneyAutoOpened] = useState(false);
   const [isLockedPertemuan, setIsLockedPertemuan] = useState(false);
   const [isRemedialMode, setIsRemedialMode] = useState(false);
-  const [showRubric, setShowRubric] = useState(false);
 
   const isTeacher = user?.role === 'guru';
 
@@ -419,28 +418,6 @@ export default function TugasDetail() {
                 </div>
               )}
 
-              {/* Panduan Rubrik Penilaian CT — transparansi cara siswa dinilai */}
-              <div className="border-4 border-[#0F172A] rounded-2xl shadow-[4px_4px_0px_#0F172A] overflow-hidden bg-white">
-                <button
-                  type="button"
-                  onClick={() => setShowRubric((v) => !v)}
-                  className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white cursor-pointer"
-                >
-                  <span className="font-fredoka text-sm font-bold flex items-center gap-2">
-                    <i className="ti ti-award text-lg" />
-                    Panduan Rubrik Penilaian CT (Cara Kamu Dinilai)
-                  </span>
-                  <i className={`ti ti-chevron-down text-lg transition-transform ${showRubric ? 'rotate-180' : ''}`} />
-                </button>
-                {showRubric && (
-                  <div className="p-4 bg-slate-50">
-                    <p className="font-nunito text-xs font-bold text-slate-600 mb-3 leading-relaxed">
-                      Karyamu dinilai pada 4 pilar Berpikir Komputasional. Pahami target tiap level agar hasilmu maksimal:
-                    </p>
-                    <CTRubricPanel />
-                  </div>
-                )}
-              </div>
 
               {/* Action Board (pink/indigo gradient banner) */}
               <div className="mt-2 p-6 border-4 border-[#0F172A] shadow-[6px_6px_0px_#0F172A] flex flex-col md:flex-row justify-between items-center gap-6 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white relative overflow-hidden">
