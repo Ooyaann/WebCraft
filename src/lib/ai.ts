@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { CT_PILLARS } from "./ctRubric";
 
 // Port dari backend/app/services/ai_service.py — SDK google-generativeai
 // (deprecated) diganti @google/genai. Perilaku & fallback offline identik.
@@ -507,30 +508,43 @@ export async function suggestProjectScore(
   rubrik: Json[],
   challengeContext: Json,
 ): Promise<Json> {
+  // Skor fallback dinamis mengikuti kriteria rubrik apa pun (4 pilar CT / lama).
+  const fallbackScores = (): Record<string, number> =>
+    rubrik.length
+      ? Object.fromEntries(rubrik.map((r) => [String(r["name"] ?? "Kriteria"), 85]))
+      : { Kelengkapan: 85 };
+
   if (!apiKey()) {
     return {
-      suggested_scores: {
-        "Kelengkapan elemen": 90,
-        "Kebenaran semantik": 85,
-        "Kreativitas desain": 80,
-        "Kesesuaian challenge": 95,
-      },
+      suggested_scores: fallbackScores(),
       analysis:
-        "Karya siswa memenuhi 95% kriteria dasar secara lokal. Struktur HTML tersusun rapi di dalam body. Penulisan CSS kreatif dengan latar belakang solid khas neo-brutalism. Terdapat sedikit ketidakefisienan pada nesting div kosong yang tidak terpakai.",
-      flags: [
-        "Nesting div kosong di baris 5",
-        "Penggunaan style terduplikasi untuk tag p",
-      ],
+        "Karya siswa memenuhi sebagian besar kriteria secara lokal. Struktur HTML tersusun rapi di dalam body dan CSS kreatif. (Mode offline: nilai saran default; guru tetap melakukan validasi manual.)",
+      flags: [],
     };
   }
+
+  // Bila rubrik memakai 4 pilar CT, sertakan deskripsi level (Tabel 5) supaya
+  // AI menilai persis sesuai rubrik — objektif, bukan mengarang kriteria.
+  const rubricGuide = CT_PILLARS.filter((p) =>
+    rubrik.some((r) => String(r["name"]) === p.label),
+  )
+    .map(
+      (p) =>
+        `- ${p.label}: ` +
+        p.levels.map((l) => `Level ${l.level} = ${l.desc}`).join(" "),
+    )
+    .join("\n");
 
   const prompt =
     `Tantangan Proyek: ${JSON.stringify(challengeContext)}\n` +
     `Karya Siswa (AST): ${JSON.stringify(ast)}\n` +
-    `Rubrik Penilaian: ${JSON.stringify(rubrik)}\n\n` +
-    "Analisis karya siswa tersebut dan rekomendasikan skor untuk setiap kriteria di rubrik penilaian (skala 0-100).\n" +
-    "Tulis analisis evaluasi naratif singkat (analysis) dalam Bahasa Indonesia serta sebutkan bendera peringatan (flags) jika ada baris kode yang mencurigakan atau salah nesting.\n" +
-    'Kembalikan sebagai JSON dengan struktur: {"suggested_scores": {"Kriteria A": 90}, "analysis": "...", "flags": ["..."]}';
+    `Rubrik Penilaian: ${JSON.stringify(rubrik)}\n` +
+    (rubricGuide
+      ? `\nAcuan kriteria (skala level 1-4 → skor: 4=90-100, 3=75-89, 2=60-74, 1=<60):\n${rubricGuide}\n`
+      : "") +
+    "\nAnalisis karya siswa tersebut dan rekomendasikan skor 0-100 untuk SETIAP kriteria rubrik sesuai acuan level di atas.\n" +
+    "Tulis analisis evaluasi naratif singkat (analysis) dalam Bahasa Indonesia serta sebutkan bendera peringatan (flags) jika ada kode mencurigakan / salah nesting.\n" +
+    'Kembalikan sebagai JSON: {"suggested_scores": {"Nama Kriteria": 90}, "analysis": "...", "flags": ["..."]}';
 
   try {
     const res = await callGemini(prompt, "", "json");

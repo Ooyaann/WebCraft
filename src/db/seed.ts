@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { CT_RUBRIC_CRITERIA } from "../lib/ctRubric";
 import postgres from "postgres";
 import * as schema from "./schema";
 
@@ -218,11 +219,8 @@ async function seed() {
     judul: "Pertemuan 3: Proyek Portofolio Impian",
     studi_kasus:
       "Buatlah proyek portofolio impian kreatif. Hiasi halaman dengan CSS style yang mendefinisikan warna latar belakang solid kontras dan buat daftar keterampilanmu menggunakan tag <ul> dan <li>.",
-    rubrik_json: [
-      { name: "Kelengkapan elemen", bobot: 30 },
-      { name: "Kebenaran semantik", bobot: 35 },
-      { name: "Kreativitas desain", bobot: 35 },
-    ],
+    // Rubrik 4 pilar Computational Thinking (Tabel 5 proposal), 25% tiap pilar.
+    rubrik_json: CT_RUBRIC_CRITERIA,
   });
 
   console.log("Seeding submissions...");
@@ -292,9 +290,10 @@ async function seed() {
     teacher_comment:
       "Kerja bagus Andi! Portofoliomu sangat terstruktur dengan rapi. Tambahkan variasi CSS lagi agar makin keren!",
     rubrik_scores_json: {
-      "Kelengkapan elemen": 90,
-      "Kebenaran semantik": 95,
-      "Kreativitas desain": 90,
+      Dekomposisi: 90,
+      "Pengenalan Pola": 95,
+      Abstraksi: 90,
+      Algoritma: 92,
     },
     is_published_to_gallery: true,
   });

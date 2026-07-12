@@ -534,3 +534,39 @@ describe("rekap & AI offline", () => {
     expect(Array.isArray(data.error_heatmap)).toBe(true);
   });
 });
+
+describe("rubrik CT: penilaian guru jadi skor CT resmi", () => {
+  it("guru menilai proyek dgn 4 pilar → tertulis ke ct_scores (grades)", async () => {
+    const { PUT } = await import(
+      "@/app/api/submissions/project/[submissionId]/grade/route"
+    );
+    const res = await PUT(
+      jsonReq(`/api/submissions/project/${projectSubmissionId}/grade`, "PUT", {
+        teacher_score: 74,
+        teacher_comment: "Bagus, tingkatkan konsistensi pola.",
+        rubrik_scores: {
+          Dekomposisi: 95,
+          "Pengenalan Pola": 82,
+          Abstraksi: 67,
+          Algoritma: 50,
+        },
+        is_published_to_gallery: true,
+      }, guruToken),
+      params({ submissionId: projectSubmissionId }),
+    );
+    expect(res.status).toBe(200);
+
+    // Grades kelas kini mencerminkan skor CT dari validasi guru (menimpa siswa)
+    const { GET } = await import("@/app/api/rooms/[roomId]/grades/route");
+    const gradesRes = await GET(
+      getReq(`/api/rooms/${roomId}/grades`, guruToken),
+      params({ roomId }),
+    );
+    const grades = await gradesRes.json();
+    const andi = grades.find((g: { email: string }) => g.email === "andi@siswa.com");
+    expect(andi.decomposition).toBe(95);
+    expect(andi.algorithm_design).toBe(50);
+    // composite = trunc((95+82+67+50)/4) = 73
+    expect(andi.ct).toBe(73);
+  });
+});

@@ -25,6 +25,9 @@ export const GET = handler(async (req) => {
       ai_suggestion: sub.ai_suggestion_json,
       teacher_score: sub.teacher_score,
       teacher_comment: sub.teacher_comment,
+      // Rincian per kriteria/pilar + rubrik tugas → transparansi di "Karya Saya"
+      rubrik_scores: sub.rubrik_scores_json,
+      rubrik: task?.rubrik_json ?? null,
       is_published_to_gallery: sub.is_published_to_gallery,
       submitted_at: sub.submitted_at,
     })),

@@ -1,0 +1,2 @@
+ALTER TABLE "ct_scores" ADD COLUMN "source" text DEFAULT 'student' NOT NULL;--> statement-breakpoint
+ALTER TABLE "ct_scores" ADD CONSTRAINT "ct_scores_siswa_pertemuan_uniq" UNIQUE("siswa_id","pertemuan_id");

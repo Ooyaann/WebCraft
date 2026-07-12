@@ -10,6 +10,7 @@ import CodePanel from '../components/workspace/CodePanel';
 import AITutorChat from '../components/ai/AITutorChat';
 import CTScoreRadar from '../components/ai/CTScoreRadar';
 import WorkspaceOnboarding from '../components/workspace/WorkspaceOnboarding';
+import CTRubricPanel from '../components/ct-rubric/CTRubricPanel';
 import { aiService } from '../services/aiService';
 import api from '../services/api';
 import { confirmDialog } from '../components/common/confirm';
@@ -90,6 +91,7 @@ export default function Workspace({ isSandbox = false }) {
   );
 
   // Onboarding states
+  const [showRubric, setShowRubric] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
     const hideOnboarding = localStorage.getItem('webcraft_hide_onboarding');
     return hideOnboarding !== 'true';
@@ -476,6 +478,18 @@ export default function Workspace({ isSandbox = false }) {
               <i className="ti ti-help text-sm animate-pulse" />
               <span className="hidden sm:inline">Panduan</span>
             </button>
+
+            {!isSandbox && (
+              <button
+                type="button"
+                onClick={() => setShowRubric(true)}
+                title="Rubrik Penilaian CT"
+                className="border-2 border-amber-400 bg-amber-500 hover:bg-amber-400 text-white font-fredoka font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_rgba(255,255,255,0.15)] hover:-translate-y-0.5 active:translate-y-[0.5px] px-3 py-1.5 text-xs"
+              >
+                <i className="ti ti-award text-sm" />
+                <span className="hidden sm:inline">Rubrik CT</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -1036,10 +1050,35 @@ export default function Workspace({ isSandbox = false }) {
       )}
 
       {/* Workspace Onboarding Guide Tutorial Modal */}
-      <WorkspaceOnboarding 
-        isOpen={isOnboardingOpen} 
-        onClose={handleOnboardingClose} 
+      <WorkspaceOnboarding
+        isOpen={isOnboardingOpen}
+        onClose={handleOnboardingClose}
       />
+
+      {/* Modal Rubrik Penilaian CT */}
+      {showRubric && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 onboard-fade"
+          onClick={() => setShowRubric(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="onboard-pop bg-white w-full max-w-lg max-h-[90vh] border-4 border-[#0F172A] rounded-2xl shadow-[8px_8px_0px_#0F172A] flex flex-col overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-b-4 border-[#0F172A] px-5 py-3 flex justify-between items-center">
+              <h3 className="font-fredoka text-base font-bold flex items-center gap-2">
+                <i className="ti ti-award text-lg" /> Rubrik Penilaian CT
+              </h3>
+              <button onClick={() => setShowRubric(false)} className="text-white hover:opacity-75 cursor-pointer">
+                <i className="ti ti-x text-lg" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto bg-slate-50">
+              <CTRubricPanel />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

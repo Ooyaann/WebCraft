@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore';
 import { toHTML, toFormattedCode } from '../services/astUtils';
 import { KKM, weightedRubricScore, criterionName } from '../lib/scoring';
 import { toast } from '../components/common/toast';
+import { CT_PILLARS, isCtPillar, scoreToLevel, levelToScore, pillarLevelDesc } from '../lib/ctRubric';
 
 function KaryaPreviewMini({ ast }) {
   let parsedAst = [];
@@ -582,6 +583,40 @@ export default function GaleriKarya() {
                           )}
                         </div>
 
+                        {/* Rincian nilai per kriteria/pilar CT — transparansi */}
+                        {item.teacher_score !== null && item.rubrik_scores && Object.keys(item.rubrik_scores).length > 0 && (
+                          <div className="bg-white border-2 border-[#0F172A] rounded-xl p-3 shadow-[2px_2px_0px_#0F172A]">
+                            <p className="font-fredoka font-bold text-xs text-slate-600 mb-2 flex items-center gap-1">
+                              <i className="ti ti-list-check" /> Rincian Nilai per Kriteria
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                              {Object.entries(item.rubrik_scores).map(([kriteria, skor]) => {
+                                const info = scoreToLevel(skor);
+                                const pillar = CT_PILLARS.find((p) => p.label === kriteria);
+                                const bobot = item.rubrik?.find((c) => criterionName(c) === kriteria)?.bobot;
+                                const toneCls = {
+                                  emerald: 'bg-emerald-50 text-emerald-700 border-emerald-300',
+                                  blue: 'bg-blue-50 text-blue-700 border-blue-300',
+                                  amber: 'bg-amber-50 text-amber-700 border-amber-300',
+                                  rose: 'bg-rose-50 text-rose-700 border-rose-300',
+                                }[info.tone];
+                                return (
+                                  <div key={kriteria} className="flex items-center justify-between gap-2 text-[11px]">
+                                    <span className="font-nunito font-bold text-slate-700 flex items-center gap-1.5 min-w-0">
+                                      {pillar && <i className={`ti ${pillar.icon} shrink-0`} />}
+                                      <span className="truncate">{kriteria}</span>
+                                      {bobot ? <span className="text-[9px] text-slate-400">({bobot}%)</span> : null}
+                                    </span>
+                                    <span className={`shrink-0 font-fredoka font-bold px-2 py-0.5 rounded-md border ${toneCls}`}>
+                                      {skor} · L{info.level} {info.label}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Teacher's comment */}
                         {item.teacher_comment ? (
                           <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs">
@@ -759,24 +794,55 @@ export default function GaleriKarya() {
                 <div className="flex flex-col gap-3">
                   {Object.keys(scores).map((kriteria) => {
                     const bobot = selectedSub.rubrik?.find((c) => criterionName(c) === kriteria)?.bobot;
+                    const val = scores[kriteria];
+                    const pillar = CT_PILLARS.find((p) => p.label === kriteria);
+                    const lv = scoreToLevel(val).level;
+                    const LV_TONE = { 4: 'bg-emerald-500', 3: 'bg-blue-500', 2: 'bg-amber-500', 1: 'bg-rose-500' };
                     return (
-                      <div key={kriteria} className="flex flex-col gap-1.5 bg-slate-50 p-3 border-2 border-[#0F172A] rounded-xl">
+                      <div key={kriteria} className="flex flex-col gap-2 bg-slate-50 p-3 border-2 border-[#0F172A] rounded-xl">
                         <div className="flex justify-between items-center">
-                          <span className="font-fredoka font-bold text-xs text-slate-600">
+                          <span className="font-fredoka font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                            {pillar && <i className={`ti ${pillar.icon} text-sm`} />}
                             {kriteria}
                             {bobot ? (
-                              <span className="ml-1.5 text-[10px] text-white bg-[#6366F1] border border-[#0F172A] px-1.5 py-0.5 rounded-md align-middle">
-                                bobot {bobot}%
+                              <span className="text-[10px] text-white bg-[#6366F1] border border-[#0F172A] px-1.5 py-0.5 rounded-md">
+                                {bobot}%
                               </span>
                             ) : null}
                           </span>
-                          <span className="font-fredoka font-bold text-sm text-[#3B82F6]">{scores[kriteria]}/100</span>
+                          <span className="font-fredoka font-bold text-sm text-[#3B82F6]">{val}/100</span>
                         </div>
+
+                        {isCtPillar(kriteria) && (
+                          <>
+                            {/* Tombol level 1-4 (objektif sesuai rubrik) */}
+                            <div className="grid grid-cols-4 gap-1.5">
+                              {[4, 3, 2, 1].map((l) => (
+                                <button
+                                  key={l}
+                                  type="button"
+                                  onClick={() => setScores({ ...scores, [kriteria]: levelToScore(l) })}
+                                  className={`py-1 border-2 border-[#0F172A] rounded-lg font-fredoka text-xs font-black cursor-pointer transition-all shadow-[1.5px_1.5px_0px_#0F172A] hover:-translate-y-0.5 ${
+                                    lv === l ? `${LV_TONE[l]} text-white` : 'bg-white text-slate-600'
+                                  }`}
+                                >
+                                  {l}
+                                </button>
+                              ))}
+                            </div>
+                            {/* Deskripsi kriteria level aktif */}
+                            <p className="font-nunito text-[10px] font-bold text-slate-600 leading-snug bg-white border border-slate-200 rounded-lg p-2">
+                              <b>Level {lv}:</b> {pillarLevelDesc(kriteria, lv)}
+                            </p>
+                          </>
+                        )}
+
+                        {/* Fine-tune 0-100 */}
                         <input
                           type="range"
                           min="0"
                           max="100"
-                          value={scores[kriteria]}
+                          value={val}
                           onChange={(e) => setScores({ ...scores, [kriteria]: parseInt(e.target.value) })}
                           className="w-full accent-[#3B82F6] cursor-pointer"
                         />

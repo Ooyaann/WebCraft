@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { learningTasks, pertemuan, projectTasks, rooms } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { CT_RUBRIC_CRITERIA } from "@/lib/ctRubric";
 import { handler, HttpError, parseBody } from "@/lib/http";
 
 type Ctx = { params: Promise<{ roomId: string }> };
@@ -112,11 +113,8 @@ export const POST = handler<Ctx>(async (req, ctx) => {
       pertemuan_id: created.id,
       judul: `Proyek: ${body.judul}`,
       studi_kasus: studiKasus,
-      rubrik_json: [
-        { name: "Kelengkapan elemen", bobot: 30 },
-        { name: "Kebenaran semantik", bobot: 35 },
-        { name: "Kreativitas desain", bobot: 35 },
-      ],
+      // Rubrik 4 pilar CT (Tabel 5), 25% tiap pilar — objektif & sesuai proposal.
+      rubrik_json: CT_RUBRIC_CRITERIA,
     });
     return created;
   });

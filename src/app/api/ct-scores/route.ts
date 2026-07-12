@@ -1,9 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { ctScores } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { upsertCtScore } from "@/lib/ctScore";
 import { handler, HttpError, parseBody } from "@/lib/http";
 import { assertMemberOfPertemuan } from "@/lib/rooms";
 
@@ -25,28 +24,15 @@ export const POST = handler(async (req) => {
   // Cegah pencemaran analitik guru: hanya anggota kelas pertemuan ini
   await assertMemberOfPertemuan(user, body.pertemuan_id);
 
-  const composite = Math.trunc(
-    (body.decomposition +
-      body.abstraction +
-      body.pattern_recognition +
-      body.algorithm_design) /
-      4,
-  );
-
-  const [score] = await getDb()
-    .insert(ctScores)
-    .values({
-      id: randomUUID(),
-      siswa_id: user.id,
-      pertemuan_id: body.pertemuan_id,
-      decomposition: body.decomposition,
-      abstraction: body.abstraction,
-      pattern_recognition: body.pattern_recognition,
-      algorithm_design: body.algorithm_design,
-      composite_ct_score: composite,
-      recorded_at: new Date(),
-    })
-    .returning();
+  const score = await upsertCtScore(getDb(), {
+    siswa_id: user.id,
+    pertemuan_id: body.pertemuan_id,
+    decomposition: body.decomposition,
+    pattern_recognition: body.pattern_recognition,
+    abstraction: body.abstraction,
+    algorithm_design: body.algorithm_design,
+    source: "student",
+  });
 
   return NextResponse.json(score, { status: 201 });
 });

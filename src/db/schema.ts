@@ -199,8 +199,14 @@ export const ctScores = pgTable("ct_scores", {
   abstraction: integer().notNull(),
   algorithm_design: integer().notNull(),
   composite_ct_score: integer().notNull(),
+  // Sumber skor: 'student' (self, CT Journey) atau 'teacher' (validasi manual).
+  source: text().notNull().default("student"),
   recorded_at: ts().defaultNow().notNull(),
-});
+}, (t) => [
+  // Satu skor CT per siswa+pertemuan — penilaian terbaru menimpa (guru
+  // biasanya menilai terakhir → jadi otoritatif).
+  unique("ct_scores_siswa_pertemuan_uniq").on(t.siswa_id, t.pertemuan_id),
+]);
 
 export const galleryItems = pgTable("gallery_items", {
   id: text().primaryKey(),
