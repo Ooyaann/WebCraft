@@ -18,6 +18,7 @@ import { toast } from '../components/common/toast';
 
 const DEFAULT_LEVEL_CONFIG = {
   id: 'easy-1',
+  pertemuan_id: 'p1',
   judul: 'Halaman Profil Sederhana',
   misi: 'Buatlah halaman web profil sederhana! Pastikan ada wadah utama <body>, judul utama <h1> berisi namamu, dan sebuah paragraf <p> berisi perkenalan singkat.',
   validator_rules: [

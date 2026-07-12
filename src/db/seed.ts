@@ -298,6 +298,32 @@ async function seed() {
     is_published_to_gallery: true,
   });
 
+  console.log("Seeding CT scores...");
+  await db.insert(schema.ctScores).values([
+    {
+      id: randomUUID(),
+      siswa_id: siswaId,
+      pertemuan_id: "p1",
+      decomposition: 90,
+      pattern_recognition: 95,
+      abstraction: 90,
+      algorithm_design: 95,
+      composite_ct_score: 92,
+      source: "student",
+    },
+    {
+      id: randomUUID(),
+      siswa_id: siswaId,
+      pertemuan_id: "p3",
+      decomposition: 90,
+      pattern_recognition: 95,
+      abstraction: 90,
+      algorithm_design: 92,
+      composite_ct_score: 91,
+      source: "teacher",
+    },
+  ]);
+
   await db.insert(schema.galleryItems).values({
     id: randomUUID(),
     project_submission_id: projectSubId,
