@@ -95,6 +95,7 @@ export const GET = handler<Ctx>(async (req, ctx) => {
     rubrik_scores: sub.rubrik_scores_json,
     rubrik,
     is_published: sub.is_published_to_gallery,
+    attempts: sub.attempt_count,
     submitted_at: sub.submitted_at,
   }));
 

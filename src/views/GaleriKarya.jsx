@@ -8,6 +8,8 @@ import { toast } from '../components/common/toast';
 import { CT_PILLARS, isCtPillar, scoreToLevel, levelToScore, pillarLevelDesc } from '../lib/ctRubric';
 
 function KaryaPreviewMini({ ast }) {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
   let parsedAst = [];
   try {
     parsedAst = typeof ast === 'string' ? JSON.parse(ast) : ast;
@@ -35,14 +37,64 @@ function KaryaPreviewMini({ ast }) {
       </body>
     </html>
   `;
+
+  const fullHTMLFull = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            color: #0f172a;
+          }
+        </style>
+      </head>
+      <body>
+        ${html}
+      </body>
+    </html>
+  `;
+
   return (
-    <div className="w-full h-36 border-2 border-[#0F172A] rounded-xl overflow-hidden bg-slate-50 relative">
+    <div className="w-full h-36 border-2 border-[#0F172A] rounded-xl overflow-hidden bg-slate-50 relative group">
       <iframe
         srcDoc={fullHTML}
         sandbox=""
         title="Mini Preview"
         className="w-full h-[300px] border-none"
       />
+      <button
+        onClick={() => setIsFullScreen(true)}
+        type="button"
+        title="Tampilkan Layar Penuh"
+        className="absolute top-2 right-2 p-1.5 bg-white hover:bg-slate-100 border-2 border-[#0F172A] text-slate-800 font-bold rounded-lg shadow-[1px_1.5px_0px_#0F172A] cursor-pointer transition-all active:translate-y-0.5 hover:-translate-y-0.5 flex items-center justify-center text-xs opacity-80 group-hover:opacity-100 z-10"
+      >
+        <i className="ti ti-maximize text-sm" />
+      </button>
+
+      {isFullScreen && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-white z-[200] w-screen h-screen overflow-hidden flex flex-col">
+          <iframe
+            srcDoc={fullHTMLFull}
+            sandbox=""
+            title="Full Screen Preview"
+            className="w-full h-full border-none bg-white"
+          />
+          <button
+            onClick={() => setIsFullScreen(false)}
+            type="button"
+            title="Tutup Pratinjau"
+            className="fixed top-4 right-4 z-[210] w-10 h-10 bg-[#EC4899] hover:bg-[#D01C7A] text-white border-2 border-[#0F172A] rounded-full shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all flex items-center justify-center text-xl font-bold"
+          >
+            <i className="ti ti-x" />
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -69,6 +121,40 @@ export default function GaleriKarya() {
   const [activeTab, setActiveTab] = useState('perlu_dinilai'); // 'perlu_dinilai' | 'sudah_dinilai' | 'publik' | 'belajar'
   const [selectedSub, setSelectedSub] = useState(null);
   const [kelasFilter, setKelasFilter] = useState('semua'); // filter kelas utk panel guru
+
+  const [selectedLearning, setSelectedLearning] = useState(null);
+  const [learningComment, setLearningComment] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
+
+  const openLearningDetailModal = (item) => {
+    setSelectedLearning(item);
+    setLearningComment(item.teacher_comment || '');
+  };
+
+  const closeLearningDetailModal = () => {
+    setSelectedLearning(null);
+  };
+
+  const handleSaveLearningComment = () => {
+    if (!selectedLearning) return;
+    setIsSavingComment(true);
+    api.put(`/submissions/learning/${selectedLearning.id}/comment`, {
+      teacher_comment: learningComment,
+    })
+      .then(() => {
+        toast.success("Catatan guru berhasil disimpan!");
+        // Refresh data
+        fetchGalleryItems();
+        closeLearningDetailModal();
+      })
+      .catch((err) => {
+        console.error("Error saving comment:", err);
+        toast.error("Gagal menyimpan catatan.");
+      })
+      .finally(() => {
+        setIsSavingComment(false);
+      });
+  };
 
   // Grading Modal Form State
   const [scores, setScores] = useState({
@@ -335,13 +421,13 @@ export default function GaleriKarya() {
                         <i className="ti ti-star text-[#FACC15]" />
                         <span className="font-fredoka font-bold text-slate-800 text-sm">Skor: {item.score}/100</span>
                       </div>
-                      <span className={`text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-lg border-2 ${
-                        item.score >= KKM
-                          ? 'text-emerald-700 bg-emerald-50 border-emerald-500'
-                          : 'text-amber-700 bg-amber-50 border-amber-500'
-                      }`}>
-                        {item.score >= KKM ? 'Tuntas' : `Remidi (KKM ${KKM})`}
-                      </span>
+                      <button
+                        onClick={() => openLearningDetailModal(item)}
+                        className="px-3.5 py-1.5 bg-indigo-50 hover:bg-[#6366F1] hover:text-white border-2 border-[#0F172A] text-[#6366F1] font-fredoka text-[10px] font-bold rounded-xl shadow-[1.5px_1.5px_0px_#0F172A] cursor-pointer transition-all active:translate-y-0.5 hover:-translate-y-0.5 flex items-center gap-1"
+                      >
+                        <i className="ti ti-message" />
+                        Catatan
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1043,6 +1129,126 @@ export default function GaleriKarya() {
               >
                 <i className="ti ti-device-floppy mr-1.5" />
                 Simpan Penilaian
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Learning Submission Detail & Comment Modal (Teacher only) */}
+      {selectedLearning && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white border-4 border-[#0F172A] shadow-[8px_8px_0px_#0F172A] max-w-4xl w-full max-h-[90vh] rounded-3xl overflow-hidden flex flex-col text-slate-800">
+            {/* Header */}
+            <div className="bg-[#6366F1] text-white border-b-4 border-[#0F172A] p-5 flex justify-between items-center">
+              <div>
+                <h3 className="font-fredoka text-2xl font-bold">Detail & Catatan Misi Belajar</h3>
+                <p className="font-nunito font-bold text-xs text-indigo-100 mt-1">Siswa: {selectedLearning.student_name} | Misi: {selectedLearning.title}</p>
+              </div>
+              <button
+                onClick={closeLearningDetailModal}
+                className="text-white hover:text-red-200 cursor-pointer text-2xl"
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Panel: Preview code */}
+              <div className="flex flex-col gap-4">
+                <div className="bg-slate-50 p-4 border-2 border-[#0F172A] rounded-2xl flex flex-col gap-2">
+                  <h4 className="font-fredoka font-bold text-sm text-slate-700 flex items-center gap-1">
+                    <i className="ti ti-code" /> Live Preview Halaman Web
+                  </h4>
+                  <KaryaPreviewMini ast={selectedLearning.ast} />
+                </div>
+
+                <div className="bg-slate-50 p-4 border-2 border-[#0F172A] rounded-2xl flex flex-col gap-2">
+                  <h4 className="font-fredoka font-bold text-sm text-slate-700 flex items-center gap-1">
+                    <i className="ti ti-braces" /> Struktur Kode HTML Siswa
+                  </h4>
+                  <div className="bg-slate-900 text-emerald-400 p-3 rounded-xl border border-slate-800 text-[10px] font-mono overflow-auto max-h-[150px] text-left">
+                    <pre className="whitespace-pre-wrap font-mono">
+                      {toFormattedCode(selectedLearning.ast) || '<!-- Kode kosong -->'}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panel: Auto scores and comment input */}
+              <div className="flex flex-col gap-4">
+                <h4 className="font-fredoka font-bold text-sm text-slate-700">Hasil Evaluasi Misi Belajar</h4>
+
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 border-2 border-[#0F172A] rounded-2xl text-xs font-nunito">
+                  <div>
+                    <span className="text-slate-400 font-bold block mb-1">Skor Akhir</span>
+                    <span className="font-fredoka font-bold text-lg text-[#6366F1]">{selectedLearning.score}/100</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-bold block mb-1">Status</span>
+                    <span className={`inline-block font-fredoka font-bold px-2 py-0.5 rounded-lg border ${
+                      selectedLearning.score >= KKM
+                        ? 'text-emerald-700 bg-emerald-50 border-emerald-300'
+                        : 'text-amber-700 bg-amber-50 border-amber-300'
+                    }`}>
+                      {selectedLearning.score >= KKM ? 'Tuntas' : 'Remidi'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* AI Feedback */}
+                {selectedLearning.ai_feedback && (
+                  <div className="bg-[#EEF2FF] border border-[#C7D2FE] p-3 rounded-xl text-left relative text-xs">
+                    <div className="flex items-center gap-1.5 text-[#4338CA] font-fredoka font-bold mb-1">
+                      <i className="ti ti-sparkles" />
+                      Umpan Balik AI:
+                    </div>
+                    <p className="font-nunito font-semibold text-slate-700 italic">
+                      "{selectedLearning.ai_feedback}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Teacher Comment */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-fredoka font-bold text-xs text-slate-600 flex items-center gap-1">
+                    <i className="ti ti-message" /> Catatan Tambahan Guru
+                  </label>
+                  <textarea
+                    rows="4"
+                    value={learningComment}
+                    onChange={(e) => setLearningComment(e.target.value)}
+                    placeholder="Tulis umpan balik khusus guru untuk meningkatkan pemikiran komputasional siswa..."
+                    className="w-full p-3 border-2 border-[#0F172A] rounded-xl font-nunito font-semibold text-xs focus:outline-none focus:bg-slate-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 border-t-4 border-[#0F172A] p-4 flex justify-end gap-3">
+              <button
+                onClick={closeLearningDetailModal}
+                className="px-4 py-2 border-2 border-[#0F172A] font-fredoka font-bold rounded-xl text-slate-700 bg-white hover:bg-slate-100 cursor-pointer transition-all shadow-[2px_2px_0px_#0f172a]"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveLearningComment}
+                disabled={isSavingComment}
+                className="px-5 py-2 bg-[#6366F1] hover:bg-[#4F46E5] border-2 border-[#0F172A] text-white font-fredoka font-bold rounded-xl cursor-pointer transition-all shadow-[2px_2px_0px_#0f172a] flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isSavingComment ? (
+                  <>
+                    <i className="ti ti-loader animate-spin" /> Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <i className="ti ti-device-floppy" /> Simpan Catatan
+                  </>
+                )}
               </button>
             </div>
           </div>

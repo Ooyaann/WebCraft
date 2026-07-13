@@ -102,24 +102,21 @@ export const POST = handler<Ctx>(async (req, ctx) => {
       })
       .returning();
 
-    if (body.tipe_aktivitas === "learning") {
-      await tx.insert(learningTasks).values({
-        id: randomUUID(),
-        pertemuan_id: created.id,
-        judul: body.judul,
-        validator_rules_json: rules,
-        max_attempts_before_ai_hint: 4,
-      });
-    } else {
-      await tx.insert(projectTasks).values({
-        id: randomUUID(),
-        pertemuan_id: created.id,
-        judul: `Proyek: ${body.judul}`,
-        studi_kasus: studiKasus,
-        // Rubrik kustom atau default 4 pilar CT (Tabel 5), 25% tiap pilar.
-        rubrik_json: body.rubrik_json ?? CT_RUBRIC_CRITERIA,
-      });
-    }
+    await tx.insert(learningTasks).values({
+      id: randomUUID(),
+      pertemuan_id: created.id,
+      judul: body.judul,
+      validator_rules_json: rules,
+      max_attempts_before_ai_hint: 4,
+    });
+    await tx.insert(projectTasks).values({
+      id: randomUUID(),
+      pertemuan_id: created.id,
+      judul: `Proyek: ${body.judul}`,
+      studi_kasus: studiKasus,
+      // Rubrik kustom atau default 4 pilar CT (Tabel 5), 25% tiap pilar.
+      rubrik_json: body.rubrik_json ?? CT_RUBRIC_CRITERIA,
+    });
     return created;
   });
 

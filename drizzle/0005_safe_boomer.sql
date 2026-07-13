@@ -1,0 +1,1 @@
+ALTER TABLE "project_submissions" ADD COLUMN "attempt_count" integer DEFAULT 0 NOT NULL;

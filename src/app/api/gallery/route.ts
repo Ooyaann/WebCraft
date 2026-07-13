@@ -114,6 +114,7 @@ export const GET = handler(async (req) => {
       ai_feedback:
         sub.ai_feedback ||
         "AI telah memvalidasi kode visual Anda dengan sukses. Hasil rakitan blok telah terstruktur secara semantik.",
+      teacher_comment: sub.teacher_comment,
       score: sub.final_score,
     });
   }

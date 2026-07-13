@@ -66,7 +66,7 @@ export const GET = handler(async (req) => {
       ast: (lastSnapshot?.["ast"] as unknown[] | undefined) ?? [],
       feedbackTags,
       teacherComment:
-        sub.ai_feedback || "Kerja bagus! Terus asah logika pemrogramanmu.",
+        sub.teacher_comment || sub.ai_feedback || "Kerja bagus! Terus asah logika pemrogramanmu.",
     };
   });
 

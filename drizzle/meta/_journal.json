@@ -36,6 +36,20 @@
       "when": 1783872102590,
       "tag": "0004_massive_doctor_doom",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783959403275,
+      "tag": "0005_safe_boomer",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783960321234,
+      "tag": "0006_mature_maria_hill",
+      "breakpoints": true
     }
   ]
 }

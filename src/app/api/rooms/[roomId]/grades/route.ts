@@ -133,6 +133,7 @@ export const GET = handler<Ctx>(async (req, ctx) => {
     const totalTasks = learningTaskIds.length + projectTaskIds.length;
 
     return {
+      id: student.id,
       name: student.name,
       email: student.email,
       // null = belum ada data nyata (bukan angka fiktif)

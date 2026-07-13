@@ -78,7 +78,8 @@ export const POST = handler(async (req) => {
   const [existingSub] = await db
     .select({
       teacher_score: projectSubmissions.teacher_score,
-      is_remedial: projectSubmissions.is_remedial
+      is_remedial: projectSubmissions.is_remedial,
+      attempt_count: projectSubmissions.attempt_count,
     })
     .from(projectSubmissions)
     .where(
@@ -93,6 +94,8 @@ export const POST = handler(async (req) => {
     ? (existingSub.is_remedial || (existingSub.teacher_score !== null && existingSub.teacher_score < 70))
     : false;
 
+  const nextAttemptCount = (existingSub?.attempt_count ?? 0) + 1;
+
   // Upsert atomik via unique (task_id, siswa_id) — race-safe.
   const updateSet = {
     final_ast_json: body.final_ast,
@@ -102,6 +105,7 @@ export const POST = handler(async (req) => {
     teacher_score: null,      // Reset skor agar dinilai kembali oleh guru
     teacher_comment: null,    // Reset catatan guru
     rubrik_scores_json: null, // Reset rincian skor pilar
+    attempt_count: nextAttemptCount,
   };
   const [row] = await db
     .insert(projectSubmissions)
@@ -169,6 +173,7 @@ export const GET = handler(async (req) => {
       rubrik_scores: sub.rubrik_scores_json,
       is_published_to_gallery: sub.is_published_to_gallery,
       is_remedial: sub.is_remedial,
+      attempts: sub.attempt_count,
       submitted_at: sub.submitted_at,
     })),
   );

@@ -155,6 +155,7 @@ export const learningSubmissions = pgTable("learning_submissions", {
   ct_post_score_json: jsonb().$type<Record<string, number>>(),
   ai_tutor_log_json: jsonb().$type<Record<string, unknown>[]>(),
   ai_feedback: text(),
+  teacher_comment: text(),
   // Penanda pengerjaan ulang (remidi): skor dibatasi maksimal KKM.
   is_remedial: boolean().notNull().default(false),
   submitted_at: ts().defaultNow().notNull(),
@@ -179,6 +180,7 @@ export const projectSubmissions = pgTable("project_submissions", {
   teacher_score: integer(),
   teacher_comment: text(),
   rubrik_scores_json: jsonb().$type<Record<string, number>>(), // {kriteria: score}
+  attempt_count: integer().notNull().default(0),
   is_published_to_gallery: boolean().notNull().default(false),
   is_remedial: boolean().notNull().default(false), // Penanda setelah remidi
   submitted_at: ts().defaultNow().notNull(),
