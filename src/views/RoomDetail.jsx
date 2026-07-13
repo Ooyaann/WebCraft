@@ -36,6 +36,11 @@ export default function RoomDetail() {
   const [rulesTab, setRulesTab] = useState('rules'); // 'rules' | 'ct'
   const [ctDecomp, setCtDecomp] = useState([]);
   const [ctSteps, setCtSteps] = useState([]);
+  const [projectPert, setProjectPert] = useState(null);
+  const [rulesWeightDecomp, setRulesWeightDecomp] = useState(25);
+  const [rulesWeightPattern, setRulesWeightPattern] = useState(25);
+  const [rulesWeightAbstract, setRulesWeightAbstract] = useState(25);
+  const [rulesWeightAlgo, setRulesWeightAlgo] = useState(25);
 
   // Form states
   const [announcementText, setAnnouncementText] = useState('');
@@ -79,13 +84,34 @@ export default function RoomDetail() {
     setCtDecomp([]);
     setCtSteps([]);
     setRulesLoading(true);
+    setProjectPert(pert);
+    setRulesWeightDecomp(25);
+    setRulesWeightPattern(25);
+    setRulesWeightAbstract(25);
+    setRulesWeightAlgo(25);
     try {
       const res = await api.get(`/pertemuan/${pert.id}/learning-task`);
-      setRulesTaskId(res.data.id);
-      setRulesList(res.data.validator_rules_json || []);
-      const ct = res.data.ct_journey_json || {};
-      setCtDecomp(Array.isArray(ct.decomposition_options) ? ct.decomposition_options : []);
-      setCtSteps(Array.isArray(ct.algorithm_steps) ? ct.algorithm_steps : []);
+      if (res.data.id) {
+        setRulesTaskId(res.data.id);
+        setRulesList(res.data.validator_rules_json || []);
+        const ct = res.data.ct_journey_json || {};
+        setCtDecomp(Array.isArray(ct.decomposition_options) ? ct.decomposition_options : []);
+        setCtSteps(Array.isArray(ct.algorithm_steps) ? ct.algorithm_steps : []);
+      } else {
+        // Tipe proyek: muat bobot rubrik yang tersimpan
+        const tasksRes = await api.get(`/pertemuan/${pert.id}/tasks`);
+        const pTask = tasksRes.data?.project_tasks?.[0];
+        if (pTask && pTask.rubrik_json && Array.isArray(pTask.rubrik_json)) {
+          const d = pTask.rubrik_json.find(r => r.name === 'Dekomposisi')?.bobot ?? 25;
+          const p = pTask.rubrik_json.find(r => r.name === 'Pengenalan Pola')?.bobot ?? 25;
+          const a = pTask.rubrik_json.find(r => r.name === 'Abstraksi')?.bobot ?? 25;
+          const al = pTask.rubrik_json.find(r => r.name === 'Algoritma')?.bobot ?? 25;
+          setRulesWeightDecomp(d);
+          setRulesWeightPattern(p);
+          setRulesWeightAbstract(a);
+          setRulesWeightAlgo(al);
+        }
+      }
     } catch (err) {
       console.error('Gagal memuat aturan validasi:', err);
       toast.error('Gagal memuat aturan validasi tugas ini.');
@@ -146,6 +172,34 @@ export default function RoomDetail() {
     } catch (err) {
       console.error('Gagal menyimpan aturan:', err);
       toast.error('Gagal menyimpan aturan validasi.');
+    } finally {
+      setRulesSaving(false);
+    }
+  };
+
+  const handleSaveProjectRubrik = async () => {
+    const sum = parseInt(rulesWeightDecomp || 0) + parseInt(rulesWeightPattern || 0) + parseInt(rulesWeightAbstract || 0) + parseInt(rulesWeightAlgo || 0);
+    if (sum !== 100) {
+      toast.error(`Total bobot rubrik harus 100%! Sekarang: ${sum}%`);
+      return;
+    }
+    setRulesSaving(true);
+    try {
+      const rubrikPayload = [
+        { name: 'Dekomposisi', bobot: parseInt(rulesWeightDecomp) },
+        { name: 'Pengenalan Pola', bobot: parseInt(rulesWeightPattern) },
+        { name: 'Abstraksi', bobot: parseInt(rulesWeightAbstract) },
+        { name: 'Algoritma', bobot: parseInt(rulesWeightAlgo) }
+      ];
+      await api.put(`/pertemuan/${projectPert.id}`, {
+        rubrik_weights_json: rubrikPayload
+      });
+      toast.success("Bobot rubrik proyek berhasil disimpan!");
+      setShowRulesModal(false);
+      loadData();
+    } catch (err) {
+      console.error("Gagal menyimpan rubrik:", err);
+      toast.error("Gagal menyimpan bobot rubrik.");
     } finally {
       setRulesSaving(false);
     }
@@ -680,15 +734,13 @@ export default function RoomDetail() {
                             <span className="hidden sm:inline">Kelola</span>
                           </button>
  
-                          {pert.tipe_aktivitas === 'learning' && (
-                            <button
-                              onClick={() => handleOpenRulesModal(pert)}
-                              className="px-2 sm:px-3 py-1.5 bg-sky-50 text-sky-700 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <i className="ti ti-list-check text-xs" />
-                              <span className="hidden sm:inline">Aturan</span>
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleOpenRulesModal(pert)}
+                            className="px-2 sm:px-3 py-1.5 bg-sky-50 text-sky-700 border-2 border-[#0F172A] font-fredoka text-[10px] font-bold rounded-lg hover:-translate-y-0.5 shadow-[1.5px_1.5px_0px_#0F172A] active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <i className="ti ti-list-check text-xs" />
+                            <span className="hidden sm:inline">Aturan</span>
+                          </button>
  
                           <button
                             onClick={() => handleDeletePertemuan(pert.id)}
@@ -1350,14 +1402,84 @@ export default function RoomDetail() {
               {rulesLoading ? (
                 <div className="text-center py-8 text-slate-500 font-bold text-sm">Memuat...</div>
               ) : rulesTaskId === null ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
-                  <div className="w-16 h-16 bg-amber-50 border-2 border-amber-500 text-amber-600 rounded-2xl flex items-center justify-center shadow-[2px_2px_0px_#0F172A]">
-                    <i className="ti ti-device-laptop text-3xl animate-bounce-slow" />
+                <div className="space-y-4 text-left">
+                  <div className="flex flex-col items-center justify-center py-4 text-center gap-3 bg-slate-50 border-2 border-slate-200 rounded-2xl p-4">
+                    <div className="w-12 h-12 bg-amber-55 border-2 border-amber-500 text-amber-600 rounded-xl flex items-center justify-center shadow-[1.5px_1.5px_0px_#0F172A] bg-[#FEF3C7]">
+                      <i className="ti ti-device-laptop text-2xl animate-bounce-slow" />
+                    </div>
+                    <div>
+                      <h4 className="font-fredoka text-sm font-bold text-slate-800">Pertemuan Tipe Proyek Kreatif</h4>
+                      <p className="font-nunito text-[11px] text-slate-500 font-semibold max-w-md leading-relaxed mt-1">
+                        Pertemuan ini dirancang khusus untuk pengerjaan <strong>Proyek Kreatif</strong> (tantangan portofolio/karya). Siswa dinilai berdasarkan rubrik 4 pilar CT dengan bobot kustom di bawah ini.
+                      </p>
+                    </div>
                   </div>
-                  <h4 className="font-fredoka text-base font-bold text-slate-800">Pertemuan Tipe Proyek Kreatif</h4>
-                  <p className="font-nunito text-xs text-slate-500 font-semibold max-w-md leading-relaxed">
-                    Pertemuan ini dirancang khusus untuk pengerjaan <strong>Proyek Kreatif</strong> (tantangan portofolio/karya). Karena tipe tugas ini tidak memerlukan validasi kode otomatis, Anda tidak perlu mengonfigurasi aturan validasi atau urutan langkah CT. Siswa akan dinilai secara manual oleh Anda berdasarkan rubrik 4 pilar CT.
-                  </p>
+
+                  <div className="border-t-2 border-dashed border-slate-200 pt-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-fredoka text-xs font-black text-slate-800 flex items-center gap-1.5">
+                        <i className="ti ti-adjustments text-indigo-600" /> Atur Bobot Penilaian CT Proyek
+                      </span>
+                      <span className={`font-fredoka text-[10px] font-bold px-2 py-0.5 rounded-full border-2 ${
+                        (parseInt(rulesWeightDecomp || 0) + parseInt(rulesWeightPattern || 0) + parseInt(rulesWeightAbstract || 0) + parseInt(rulesWeightAlgo || 0) === 100)
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : 'bg-red-50 text-red-700 border-red-300 animate-pulse'
+                      }`}>
+                        Total: {parseInt(rulesWeightDecomp || 0) + parseInt(rulesWeightPattern || 0) + parseInt(rulesWeightAbstract || 0) + parseInt(rulesWeightAlgo || 0)}% (Harus 100%)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="font-fredoka font-bold text-slate-700 text-[10px] block mb-1">Dekomposisi (%):</label>
+                        <input
+                          type="number"
+                          value={rulesWeightDecomp}
+                          onChange={(e) => setRulesWeightDecomp(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full neo-input text-xs font-semibold py-1 px-2"
+                          min={0}
+                          max={100}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="font-fredoka font-bold text-slate-700 text-[10px] block mb-1">Pengenalan Pola (%):</label>
+                        <input
+                          type="number"
+                          value={rulesWeightPattern}
+                          onChange={(e) => setRulesWeightPattern(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full neo-input text-xs font-semibold py-1 px-2"
+                          min={0}
+                          max={100}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="font-fredoka font-bold text-slate-700 text-[10px] block mb-1">Abstraksi (%):</label>
+                        <input
+                          type="number"
+                          value={rulesWeightAbstract}
+                          onChange={(e) => setRulesWeightAbstract(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full neo-input text-xs font-semibold py-1 px-2"
+                          min={0}
+                          max={100}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="font-fredoka font-bold text-slate-700 text-[10px] block mb-1">Algoritma (%):</label>
+                        <input
+                          type="number"
+                          value={rulesWeightAlgo}
+                          onChange={(e) => setRulesWeightAlgo(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full neo-input text-xs font-semibold py-1 px-2"
+                          min={0}
+                          max={100}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : rulesTab === 'ct' ? (
                 <>
@@ -1457,12 +1579,33 @@ export default function RoomDetail() {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => setShowRulesModal(false)}
-                  className="px-5 py-2.5 bg-[#0F172A] text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-fredoka font-bold rounded-xl text-xs md:text-sm hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
-                >
-                  Tutup
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowRulesModal(false)}
+                    disabled={rulesSaving}
+                    className="px-5 py-2.5 border-4 border-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] text-slate-700 font-fredoka font-bold rounded-xl text-xs md:text-sm shadow-[3px_3px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleSaveProjectRubrik}
+                    disabled={rulesSaving || rulesLoading}
+                    className={`px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white border-4 border-[#0F172A] shadow-[3px_3px_0px_#0F172A] font-fredoka font-bold rounded-xl text-xs md:text-sm hover:-translate-y-0.5 active:translate-y-[0.5px] active:shadow-[1px_1px_0px_#0F172A] transition-all cursor-pointer flex items-center gap-1.5 ${(rulesSaving || rulesLoading) ? 'opacity-50 cursor-not-allowed shadow-none transform-none active:translate-y-0' : ''
+                      }`}
+                  >
+                    {rulesSaving ? (
+                      <>
+                        <i className="ti ti-loader animate-spin text-sm" />
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="ti ti-circle-check" />
+                        <span>Simpan Rubrik</span>
+                      </>
+                    )}
+                  </button>
+                </>
               )}
             </div>
           </div>
