@@ -10,6 +10,7 @@ import { toHTML, toFormattedCode } from '../services/astUtils';
 
 // Read-only mini preview of a finished karya (no interaction, replay-only)
 function RekapPreview({ ast }) {
+  const [isFullScreen, setIsFullScreen] = useState(false);
   let parsed = [];
   try {
     parsed = typeof ast === 'string' ? JSON.parse(ast) : (ast || []);
@@ -21,9 +22,37 @@ function RekapPreview({ ast }) {
     body { font-family:'Nunito',sans-serif; margin:0; padding:16px; background:#ffffff; color:#0f172a; }
   </style></head><body>${html}</body></html>`;
   return (
-    <div className="w-full h-64 border-2 border-[#0F172A] rounded-xl overflow-hidden bg-white relative shadow-[3px_3px_0px_#0F172A]">
+    <div className="w-full h-64 border-2 border-[#0F172A] rounded-xl overflow-hidden bg-white relative shadow-[3px_3px_0px_#0F172A] group">
       <iframe srcDoc={fullHTML} sandbox="" title="Rekap Preview" className="w-full h-full border-none" />
       <div className="absolute inset-0 pointer-events-none" />
+      <button
+        onClick={() => setIsFullScreen(true)}
+        type="button"
+        title="Tampilkan Layar Penuh"
+        className="absolute top-2 right-2 p-1.5 bg-white hover:bg-slate-100 border-2 border-[#0F172A] text-slate-800 font-bold rounded-lg shadow-[1px_1.5px_0px_#0F172A] cursor-pointer transition-all active:translate-y-0.5 hover:-translate-y-0.5 flex items-center justify-center text-xs opacity-90 group-hover:opacity-100 z-10"
+      >
+        <i className="ti ti-maximize text-sm" />
+      </button>
+
+      {isFullScreen && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-white z-[200] w-screen h-screen overflow-hidden flex flex-col">
+          <iframe
+            srcDoc={fullHTML}
+            sandbox=""
+            title="Full Screen Preview"
+            className="w-full h-full border-none bg-white"
+          />
+          <button
+            onClick={() => setIsFullScreen(false)}
+            type="button"
+            title="Tutup Pratinjau"
+            className="fixed top-4 right-4 z-[210] w-10 h-10 bg-[#EC4899] hover:bg-[#D01C7A] text-white border-2 border-[#0F172A] rounded-full shadow-[2px_2px_0px_#0F172A] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all flex items-center justify-center text-xl font-bold"
+          >
+            <i className="ti ti-x" />
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
